@@ -1,0 +1,157 @@
+{
+  "titanVersion": "1.0",
+  "project": { "id": "healthcare", "name": "Clinic Management" },
+  "dialect": "postgres",
+  "tables": [
+    {
+      "id": "clinics", "name": "clinics", "description": "Physical clinic locations.",
+      "columns": [
+        { "id": "clinics.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "clinics.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "clinics.address", "name": "address", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "clinics.phone", "name": "phone", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "clinics.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": []
+    },
+    {
+      "id": "doctors", "name": "doctors", "description": "Medical practitioners.",
+      "columns": [
+        { "id": "doctors.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "doctors.clinic_id", "name": "clinic_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "doctors.first_name", "name": "first_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "doctors.last_name", "name": "last_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "doctors.specialty", "name": "specialty", "type": "specialty", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "doctors.license_number", "name": "license_number", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "doctors.email", "name": "email", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "doctors.is_active", "name": "is_active", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "true" },
+        { "id": "doctors.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "doctors.clinic_idx", "name": "doctors_clinic_idx", "table": "doctors", "columns": ["doctors.clinic_id"], "unique": false },
+        { "id": "doctors.license_idx", "name": "doctors_license_idx", "table": "doctors", "columns": ["doctors.license_number"], "unique": true }
+      ]
+    },
+    {
+      "id": "patients", "name": "patients", "description": "Registered patients.",
+      "columns": [
+        { "id": "patients.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "patients.first_name", "name": "first_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "patients.last_name", "name": "last_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "patients.date_of_birth", "name": "date_of_birth", "type": "date", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "patients.gender", "name": "gender", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "patients.email", "name": "email", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "patients.phone", "name": "phone", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "patients.address", "name": "address", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "patients.insurance_number", "name": "insurance_number", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "patients.blood_type", "name": "blood_type", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "patients.allergies", "name": "allergies", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "patients.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "patients.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "patients.name_dob_idx", "name": "patients_name_dob_idx", "table": "patients", "columns": ["patients.last_name", "patients.first_name", "patients.date_of_birth"], "unique": false }
+      ]
+    },
+    {
+      "id": "appointments", "name": "appointments", "description": "Scheduled patient visits.",
+      "columns": [
+        { "id": "appointments.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "appointments.patient_id", "name": "patient_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "appointments.doctor_id", "name": "doctor_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "appointments.clinic_id", "name": "clinic_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "appointments.scheduled_at", "name": "scheduled_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "appointments.duration_minutes", "name": "duration_minutes", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "30" },
+        { "id": "appointments.status", "name": "status", "type": "appointment_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'scheduled'" },
+        { "id": "appointments.reason", "name": "reason", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "appointments.notes", "name": "notes", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "appointments.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "appointments.doctor_schedule_idx", "name": "appointments_doctor_schedule_idx", "table": "appointments", "columns": ["appointments.doctor_id", "appointments.scheduled_at"], "unique": false },
+        { "id": "appointments.patient_idx", "name": "appointments_patient_idx", "table": "appointments", "columns": ["appointments.patient_id"], "unique": false },
+        { "id": "appointments.status_idx", "name": "appointments_status_idx", "table": "appointments", "columns": ["appointments.status"], "unique": false }
+      ]
+    },
+    {
+      "id": "medical_records", "name": "medical_records", "description": "Clinical notes and diagnoses from visits.",
+      "columns": [
+        { "id": "medical_records.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "medical_records.appointment_id", "name": "appointment_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "medical_records.patient_id", "name": "patient_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "medical_records.doctor_id", "name": "doctor_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "medical_records.diagnosis", "name": "diagnosis", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "medical_records.symptoms", "name": "symptoms", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "medical_records.treatment_plan", "name": "treatment_plan", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "medical_records.follow_up_date", "name": "follow_up_date", "type": "date", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "medical_records.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "medical_records.patient_idx", "name": "medical_records_patient_idx", "table": "medical_records", "columns": ["medical_records.patient_id"], "unique": false },
+        { "id": "medical_records.appointment_idx", "name": "medical_records_appointment_idx", "table": "medical_records", "columns": ["medical_records.appointment_id"], "unique": true }
+      ]
+    },
+    {
+      "id": "prescriptions", "name": "prescriptions", "description": "Medications prescribed during visits.",
+      "columns": [
+        { "id": "prescriptions.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "prescriptions.record_id", "name": "record_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "prescriptions.medication_name", "name": "medication_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "prescriptions.dosage", "name": "dosage", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "prescriptions.frequency", "name": "frequency", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "prescriptions.duration_days", "name": "duration_days", "type": "integer", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "prescriptions.notes", "name": "notes", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "prescriptions.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "prescriptions.record_idx", "name": "prescriptions_record_idx", "table": "prescriptions", "columns": ["prescriptions.record_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "audit_log", "name": "audit_log", "description": "Immutable log of access to sensitive patient data.",
+      "columns": [
+        { "id": "audit_log.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "audit_log.actor_id", "name": "actor_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false, "description": "Doctor or staff who accessed data." },
+        { "id": "audit_log.patient_id", "name": "patient_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "audit_log.action", "name": "action", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "audit_log.resource_type", "name": "resource_type", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "audit_log.resource_id", "name": "resource_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "audit_log.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "audit_log.patient_idx", "name": "audit_log_patient_idx", "table": "audit_log", "columns": ["audit_log.patient_id"], "unique": false },
+        { "id": "audit_log.actor_idx", "name": "audit_log_actor_idx", "table": "audit_log", "columns": ["audit_log.actor_id"], "unique": false },
+        { "id": "audit_log.created_at_idx", "name": "audit_log_created_at_idx", "table": "audit_log", "columns": ["audit_log.created_at"], "unique": false }
+      ]
+    }
+  ],
+  "enums": [
+    { "id": "specialty", "name": "specialty", "values": ["general_practice", "cardiology", "dermatology", "neurology", "orthopedics", "pediatrics", "psychiatry", "surgery"], "description": "Medical specializations." },
+    { "id": "appointment_status", "name": "appointment_status", "values": ["scheduled", "confirmed", "checked_in", "in_progress", "completed", "cancelled", "no_show"], "description": "Appointment lifecycle states." }
+  ],
+  "relations": [
+    { "id": "doctors_clinic", "name": "doctors_clinic", "from": { "table": "doctors", "columns": ["doctors.clinic_id"] }, "to": { "table": "clinics", "columns": ["clinics.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "appointments_patient", "name": "appointments_patient", "from": { "table": "appointments", "columns": ["appointments.patient_id"] }, "to": { "table": "patients", "columns": ["patients.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "appointments_doctor", "name": "appointments_doctor", "from": { "table": "appointments", "columns": ["appointments.doctor_id"] }, "to": { "table": "doctors", "columns": ["doctors.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "appointments_clinic", "name": "appointments_clinic", "from": { "table": "appointments", "columns": ["appointments.clinic_id"] }, "to": { "table": "clinics", "columns": ["clinics.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "medical_records_appointment", "name": "medical_records_appointment", "from": { "table": "medical_records", "columns": ["medical_records.appointment_id"] }, "to": { "table": "appointments", "columns": ["appointments.id"] }, "cardinality": "one-to-one", "onDelete": "restrict" },
+    { "id": "medical_records_patient", "name": "medical_records_patient", "from": { "table": "medical_records", "columns": ["medical_records.patient_id"] }, "to": { "table": "patients", "columns": ["patients.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "medical_records_doctor", "name": "medical_records_doctor", "from": { "table": "medical_records", "columns": ["medical_records.doctor_id"] }, "to": { "table": "doctors", "columns": ["doctors.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "prescriptions_record", "name": "prescriptions_record", "from": { "table": "prescriptions", "columns": ["prescriptions.record_id"] }, "to": { "table": "medical_records", "columns": ["medical_records.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "audit_log_actor", "name": "audit_log_actor", "from": { "table": "audit_log", "columns": ["audit_log.actor_id"] }, "to": { "table": "doctors", "columns": ["doctors.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "audit_log_patient", "name": "audit_log_patient", "from": { "table": "audit_log", "columns": ["audit_log.patient_id"] }, "to": { "table": "patients", "columns": ["patients.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" }
+  ],
+  "metadata": {
+    "editor": {
+      "tablePositions": {
+        "clinics": { "x": 60, "y": 60 },
+        "doctors": { "x": 60, "y": 340 },
+        "patients": { "x": 480, "y": 60 },
+        "appointments": { "x": 480, "y": 420 },
+        "medical_records": { "x": 920, "y": 60 },
+        "prescriptions": { "x": 920, "y": 420 },
+        "audit_log": { "x": 1340, "y": 240 }
+      }
+    }
+  }
+}

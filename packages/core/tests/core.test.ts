@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { diagnoseSchema, normalizeSchema, validateTitanSchema, type TitanSchema } from "../src";
+import { createEmptySchema, diagnoseSchema, normalizeSchema, validateTitanSchema, type TitanSchema } from "../src";
 
 const validSchema: TitanSchema = {
   titanVersion: "1.0",
@@ -18,6 +18,14 @@ const validSchema: TitanSchema = {
 };
 
 describe("TitanSchema validation", () => {
+  it("creates a valid empty schema", () => {
+    const empty = createEmptySchema();
+    expect(empty.project.name).toBe("Untitled Schema");
+    expect(empty.dialect).toBe("postgres");
+    expect(empty.tables).toEqual([]);
+    expect(validateTitanSchema(empty)).toMatchObject({ success: true, diagnostics: [] });
+  });
+
   // --- Fixture validation ---
   for (const example of ["blog/blog.titan.json", "saas/saas.titan.json", "ecommerce/ecommerce.titan.json", "project-management/project-management.titan.json", "messaging/messaging.titan.json"]) {
     it(`validates the ${example} fixture`, () => {

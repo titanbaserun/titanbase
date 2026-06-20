@@ -1,0 +1,181 @@
+{
+  "titanVersion": "1.0",
+  "project": { "id": "crm", "name": "Sales CRM" },
+  "dialect": "postgres",
+  "tables": [
+    {
+      "id": "users", "name": "users", "description": "Sales team members and managers.",
+      "columns": [
+        { "id": "users.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "users.email", "name": "email", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "users.full_name", "name": "full_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "users.role", "name": "role", "type": "user_role", "nullable": false, "primaryKey": false, "unique": false, "default": "'rep'" },
+        { "id": "users.is_active", "name": "is_active", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "true" },
+        { "id": "users.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "users.email_idx", "name": "users_email_idx", "table": "users", "columns": ["users.email"], "unique": true }
+      ]
+    },
+    {
+      "id": "companies", "name": "companies", "description": "Organizations that contacts belong to.",
+      "columns": [
+        { "id": "companies.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "companies.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "companies.domain", "name": "domain", "type": "text", "nullable": true, "primaryKey": false, "unique": true, "description": "Company website domain for enrichment." },
+        { "id": "companies.industry", "name": "industry", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "companies.employee_count", "name": "employee_count", "type": "integer", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "companies.owner_id", "name": "owner_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "companies.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "companies.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "companies.domain_idx", "name": "companies_domain_idx", "table": "companies", "columns": ["companies.domain"], "unique": true },
+        { "id": "companies.owner_idx", "name": "companies_owner_idx", "table": "companies", "columns": ["companies.owner_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "contacts", "name": "contacts", "description": "Individual people associated with companies.",
+      "columns": [
+        { "id": "contacts.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "contacts.company_id", "name": "company_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "contacts.owner_id", "name": "owner_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "contacts.first_name", "name": "first_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "contacts.last_name", "name": "last_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "contacts.email", "name": "email", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "contacts.phone", "name": "phone", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "contacts.job_title", "name": "job_title", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "contacts.lifecycle_stage", "name": "lifecycle_stage", "type": "lifecycle_stage", "nullable": false, "primaryKey": false, "unique": false, "default": "'lead'" },
+        { "id": "contacts.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "contacts.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "contacts.company_idx", "name": "contacts_company_idx", "table": "contacts", "columns": ["contacts.company_id"], "unique": false },
+        { "id": "contacts.email_idx", "name": "contacts_email_idx", "table": "contacts", "columns": ["contacts.email"], "unique": false },
+        { "id": "contacts.owner_idx", "name": "contacts_owner_idx", "table": "contacts", "columns": ["contacts.owner_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "pipelines", "name": "pipelines", "description": "Sales pipelines representing different sales processes.",
+      "columns": [
+        { "id": "pipelines.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "pipelines.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "pipelines.is_default", "name": "is_default", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "false" },
+        { "id": "pipelines.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": []
+    },
+    {
+      "id": "pipeline_stages", "name": "pipeline_stages", "description": "Ordered stages within a pipeline.",
+      "columns": [
+        { "id": "pipeline_stages.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "pipeline_stages.pipeline_id", "name": "pipeline_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "pipeline_stages.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "pipeline_stages.position", "name": "position", "type": "integer", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "pipeline_stages.win_probability", "name": "win_probability", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0", "description": "Probability percentage 0-100." }
+      ],
+      "indexes": [
+        { "id": "pipeline_stages.pipeline_position_idx", "name": "pipeline_stages_pipeline_position_idx", "table": "pipeline_stages", "columns": ["pipeline_stages.pipeline_id", "pipeline_stages.position"], "unique": true }
+      ]
+    },
+    {
+      "id": "deals", "name": "deals", "description": "Revenue opportunities tracked through pipeline stages.",
+      "columns": [
+        { "id": "deals.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "deals.title", "name": "title", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "deals.pipeline_id", "name": "pipeline_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "deals.stage_id", "name": "stage_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "deals.contact_id", "name": "contact_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "deals.company_id", "name": "company_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "deals.owner_id", "name": "owner_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "deals.amount", "name": "amount", "type": "numeric", "nativeType": "numeric(14,2)", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "deals.currency", "name": "currency", "type": "text", "nullable": false, "primaryKey": false, "unique": false, "default": "'USD'" },
+        { "id": "deals.close_date", "name": "close_date", "type": "date", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "deals.status", "name": "status", "type": "deal_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'open'" },
+        { "id": "deals.lost_reason", "name": "lost_reason", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "deals.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "deals.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "deals.pipeline_idx", "name": "deals_pipeline_idx", "table": "deals", "columns": ["deals.pipeline_id"], "unique": false },
+        { "id": "deals.stage_idx", "name": "deals_stage_idx", "table": "deals", "columns": ["deals.stage_id"], "unique": false },
+        { "id": "deals.owner_idx", "name": "deals_owner_idx", "table": "deals", "columns": ["deals.owner_id"], "unique": false },
+        { "id": "deals.status_idx", "name": "deals_status_idx", "table": "deals", "columns": ["deals.status"], "unique": false }
+      ]
+    },
+    {
+      "id": "activities", "name": "activities", "description": "Logged interactions such as calls, emails, and meetings.",
+      "columns": [
+        { "id": "activities.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "activities.type", "name": "type", "type": "activity_type", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "activities.subject", "name": "subject", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "activities.notes", "name": "notes", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "activities.contact_id", "name": "contact_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "activities.deal_id", "name": "deal_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "activities.performed_by", "name": "performed_by", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "activities.performed_at", "name": "performed_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "activities.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "activities.contact_idx", "name": "activities_contact_idx", "table": "activities", "columns": ["activities.contact_id"], "unique": false },
+        { "id": "activities.deal_idx", "name": "activities_deal_idx", "table": "activities", "columns": ["activities.deal_id"], "unique": false },
+        { "id": "activities.performed_by_idx", "name": "activities_performed_by_idx", "table": "activities", "columns": ["activities.performed_by"], "unique": false }
+      ]
+    },
+    {
+      "id": "tags", "name": "tags", "description": "Freeform tags for contacts and deals.",
+      "columns": [
+        { "id": "tags.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "tags.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": true }
+      ],
+      "indexes": []
+    },
+    {
+      "id": "contact_tags", "name": "contact_tags", "description": "Many-to-many: contacts to tags.",
+      "columns": [
+        { "id": "contact_tags.contact_id", "name": "contact_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "contact_tags.tag_id", "name": "tag_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false }
+      ],
+      "indexes": [
+        { "id": "contact_tags.tag_idx", "name": "contact_tags_tag_idx", "table": "contact_tags", "columns": ["contact_tags.tag_id"], "unique": false }
+      ]
+    }
+  ],
+  "enums": [
+    { "id": "user_role", "name": "user_role", "values": ["admin", "manager", "rep"], "description": "Sales team roles." },
+    { "id": "lifecycle_stage", "name": "lifecycle_stage", "values": ["subscriber", "lead", "mql", "sql", "opportunity", "customer", "evangelist"], "description": "Contact lifecycle progression." },
+    { "id": "deal_status", "name": "deal_status", "values": ["open", "won", "lost"], "description": "Deal outcome states." },
+    { "id": "activity_type", "name": "activity_type", "values": ["call", "email", "meeting", "note", "task"], "description": "Types of logged sales activities." }
+  ],
+  "relations": [
+    { "id": "companies_owner", "name": "companies_owner", "from": { "table": "companies", "columns": ["companies.owner_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "contacts_company", "name": "contacts_company", "from": { "table": "contacts", "columns": ["contacts.company_id"] }, "to": { "table": "companies", "columns": ["companies.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "contacts_owner", "name": "contacts_owner", "from": { "table": "contacts", "columns": ["contacts.owner_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "pipeline_stages_pipeline", "name": "pipeline_stages_pipeline", "from": { "table": "pipeline_stages", "columns": ["pipeline_stages.pipeline_id"] }, "to": { "table": "pipelines", "columns": ["pipelines.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "deals_pipeline", "name": "deals_pipeline", "from": { "table": "deals", "columns": ["deals.pipeline_id"] }, "to": { "table": "pipelines", "columns": ["pipelines.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "deals_stage", "name": "deals_stage", "from": { "table": "deals", "columns": ["deals.stage_id"] }, "to": { "table": "pipeline_stages", "columns": ["pipeline_stages.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "deals_contact", "name": "deals_contact", "from": { "table": "deals", "columns": ["deals.contact_id"] }, "to": { "table": "contacts", "columns": ["contacts.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "deals_company", "name": "deals_company", "from": { "table": "deals", "columns": ["deals.company_id"] }, "to": { "table": "companies", "columns": ["companies.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "deals_owner", "name": "deals_owner", "from": { "table": "deals", "columns": ["deals.owner_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "activities_contact", "name": "activities_contact", "from": { "table": "activities", "columns": ["activities.contact_id"] }, "to": { "table": "contacts", "columns": ["contacts.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "activities_deal", "name": "activities_deal", "from": { "table": "activities", "columns": ["activities.deal_id"] }, "to": { "table": "deals", "columns": ["deals.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "activities_performed_by", "name": "activities_performed_by", "from": { "table": "activities", "columns": ["activities.performed_by"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "contact_tags_contact", "name": "contact_tags_contact", "from": { "table": "contact_tags", "columns": ["contact_tags.contact_id"] }, "to": { "table": "contacts", "columns": ["contacts.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "contact_tags_tag", "name": "contact_tags_tag", "from": { "table": "contact_tags", "columns": ["contact_tags.tag_id"] }, "to": { "table": "tags", "columns": ["tags.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" }
+  ],
+  "metadata": {
+    "editor": {
+      "tablePositions": {
+        "users": { "x": 60, "y": 60 },
+        "companies": { "x": 60, "y": 380 },
+        "contacts": { "x": 460, "y": 220 },
+        "pipelines": { "x": 880, "y": 60 },
+        "pipeline_stages": { "x": 880, "y": 320 },
+        "deals": { "x": 1280, "y": 220 },
+        "activities": { "x": 1280, "y": 580 },
+        "tags": { "x": 460, "y": 580 },
+        "contact_tags": { "x": 460, "y": 780 }
+      }
+    }
+  }
+}

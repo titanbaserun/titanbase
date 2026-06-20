@@ -9,7 +9,11 @@ export function normalizeSchema(input: unknown): TitanSchema {
 
   return {
     ...result.data,
-    project: { id: result.data.project.id.trim(), name: result.data.project.name.trim() },
+    project: {
+      id: result.data.project.id.trim(),
+      name: result.data.project.name.trim(),
+      ...(result.data.project.description ? { description: result.data.project.description.trim() } : {}),
+    },
     tables: result.data.tables.map((table) => ({
       ...table,
       name: table.name.trim(),

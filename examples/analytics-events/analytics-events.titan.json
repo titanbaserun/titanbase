@@ -1,0 +1,160 @@
+{
+  "titanVersion": "1.0",
+  "project": { "id": "analytics-events", "name": "Product Analytics" },
+  "dialect": "postgres",
+  "tables": [
+    {
+      "id": "projects", "name": "projects", "description": "Tracked applications or websites.",
+      "columns": [
+        { "id": "projects.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "projects.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "projects.api_key", "name": "api_key", "type": "text", "nullable": false, "primaryKey": false, "unique": true, "description": "Public write key for the SDK." },
+        { "id": "projects.domain", "name": "domain", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "projects.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "projects.api_key_idx", "name": "projects_api_key_idx", "table": "projects", "columns": ["projects.api_key"], "unique": true }
+      ]
+    },
+    {
+      "id": "users", "name": "users", "description": "Identified end-users from client applications.",
+      "columns": [
+        { "id": "users.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "users.project_id", "name": "project_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "users.external_id", "name": "external_id", "type": "text", "nullable": false, "primaryKey": false, "unique": false, "description": "User ID from the client application." },
+        { "id": "users.email", "name": "email", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "users.properties", "name": "properties", "type": "jsonb", "nullable": false, "primaryKey": false, "unique": false, "default": "'{}'" },
+        { "id": "users.first_seen_at", "name": "first_seen_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "users.last_seen_at", "name": "last_seen_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "users.project_external_idx", "name": "users_project_external_idx", "table": "users", "columns": ["users.project_id", "users.external_id"], "unique": true }
+      ]
+    },
+    {
+      "id": "sessions", "name": "sessions", "description": "Browsing sessions grouping events.",
+      "columns": [
+        { "id": "sessions.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "sessions.project_id", "name": "project_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "sessions.user_id", "name": "user_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "sessions.anonymous_id", "name": "anonymous_id", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "sessions.started_at", "name": "started_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "sessions.ended_at", "name": "ended_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "sessions.duration_ms", "name": "duration_ms", "type": "bigint", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "sessions.referrer", "name": "referrer", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "sessions.utm_source", "name": "utm_source", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "sessions.utm_medium", "name": "utm_medium", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "sessions.utm_campaign", "name": "utm_campaign", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "sessions.country", "name": "country", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "sessions.device_type", "name": "device_type", "type": "device_type", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "sessions.browser", "name": "browser", "type": "text", "nullable": true, "primaryKey": false, "unique": false }
+      ],
+      "indexes": [
+        { "id": "sessions.project_started_idx", "name": "sessions_project_started_idx", "table": "sessions", "columns": ["sessions.project_id", "sessions.started_at"], "unique": false, "method": "btree" },
+        { "id": "sessions.user_idx", "name": "sessions_user_idx", "table": "sessions", "columns": ["sessions.user_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "events", "name": "events", "description": "Raw tracked events (page views, clicks, custom).",
+      "columns": [
+        { "id": "events.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "events.project_id", "name": "project_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "events.session_id", "name": "session_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "events.user_id", "name": "user_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "events.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false, "description": "Event name, e.g. page_view, button_click." },
+        { "id": "events.properties", "name": "properties", "type": "jsonb", "nullable": false, "primaryKey": false, "unique": false, "default": "'{}'" },
+        { "id": "events.page_url", "name": "page_url", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "events.timestamp", "name": "timestamp", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "events.project_timestamp_idx", "name": "events_project_timestamp_idx", "table": "events", "columns": ["events.project_id", "events.timestamp"], "unique": false, "method": "btree" },
+        { "id": "events.name_idx", "name": "events_name_idx", "table": "events", "columns": ["events.project_id", "events.name"], "unique": false },
+        { "id": "events.session_idx", "name": "events_session_idx", "table": "events", "columns": ["events.session_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "funnels", "name": "funnels", "description": "Defined conversion funnels.",
+      "columns": [
+        { "id": "funnels.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "funnels.project_id", "name": "project_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "funnels.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "funnels.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "funnels.project_idx", "name": "funnels_project_idx", "table": "funnels", "columns": ["funnels.project_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "funnel_steps", "name": "funnel_steps", "description": "Ordered steps in a funnel.",
+      "columns": [
+        { "id": "funnel_steps.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "funnel_steps.funnel_id", "name": "funnel_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "funnel_steps.event_name", "name": "event_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "funnel_steps.position", "name": "position", "type": "integer", "nullable": false, "primaryKey": false, "unique": false }
+      ],
+      "indexes": [
+        { "id": "funnel_steps.funnel_position_idx", "name": "funnel_steps_funnel_position_idx", "table": "funnel_steps", "columns": ["funnel_steps.funnel_id", "funnel_steps.position"], "unique": true }
+      ]
+    },
+    {
+      "id": "dashboards", "name": "dashboards", "description": "Custom analytics dashboards.",
+      "columns": [
+        { "id": "dashboards.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "dashboards.project_id", "name": "project_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "dashboards.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "dashboards.is_default", "name": "is_default", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "false" },
+        { "id": "dashboards.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "dashboards.project_idx", "name": "dashboards_project_idx", "table": "dashboards", "columns": ["dashboards.project_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "widgets", "name": "widgets", "description": "Chart widgets placed on dashboards.",
+      "columns": [
+        { "id": "widgets.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "widgets.dashboard_id", "name": "dashboard_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "widgets.title", "name": "title", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "widgets.chart_type", "name": "chart_type", "type": "chart_type", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "widgets.config", "name": "config", "type": "jsonb", "nullable": false, "primaryKey": false, "unique": false, "default": "'{}'" },
+        { "id": "widgets.position_x", "name": "position_x", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
+        { "id": "widgets.position_y", "name": "position_y", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
+        { "id": "widgets.width", "name": "width", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "4" },
+        { "id": "widgets.height", "name": "height", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "3" }
+      ],
+      "indexes": [
+        { "id": "widgets.dashboard_idx", "name": "widgets_dashboard_idx", "table": "widgets", "columns": ["widgets.dashboard_id"], "unique": false }
+      ]
+    }
+  ],
+  "enums": [
+    { "id": "device_type", "name": "device_type", "values": ["desktop", "mobile", "tablet"], "description": "Client device categories." },
+    { "id": "chart_type", "name": "chart_type", "values": ["line", "bar", "pie", "funnel", "table", "number"], "description": "Dashboard widget chart types." }
+  ],
+  "relations": [
+    { "id": "users_project", "name": "users_project", "from": { "table": "users", "columns": ["users.project_id"] }, "to": { "table": "projects", "columns": ["projects.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "sessions_project", "name": "sessions_project", "from": { "table": "sessions", "columns": ["sessions.project_id"] }, "to": { "table": "projects", "columns": ["projects.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "sessions_user", "name": "sessions_user", "from": { "table": "sessions", "columns": ["sessions.user_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "events_project", "name": "events_project", "from": { "table": "events", "columns": ["events.project_id"] }, "to": { "table": "projects", "columns": ["projects.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "events_session", "name": "events_session", "from": { "table": "events", "columns": ["events.session_id"] }, "to": { "table": "sessions", "columns": ["sessions.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "events_user", "name": "events_user", "from": { "table": "events", "columns": ["events.user_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "funnels_project", "name": "funnels_project", "from": { "table": "funnels", "columns": ["funnels.project_id"] }, "to": { "table": "projects", "columns": ["projects.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "funnel_steps_funnel", "name": "funnel_steps_funnel", "from": { "table": "funnel_steps", "columns": ["funnel_steps.funnel_id"] }, "to": { "table": "funnels", "columns": ["funnels.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "dashboards_project", "name": "dashboards_project", "from": { "table": "dashboards", "columns": ["dashboards.project_id"] }, "to": { "table": "projects", "columns": ["projects.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "widgets_dashboard", "name": "widgets_dashboard", "from": { "table": "widgets", "columns": ["widgets.dashboard_id"] }, "to": { "table": "dashboards", "columns": ["dashboards.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" }
+  ],
+  "metadata": {
+    "editor": {
+      "tablePositions": {
+        "projects": { "x": 60, "y": 60 },
+        "users": { "x": 60, "y": 380 },
+        "sessions": { "x": 460, "y": 60 },
+        "events": { "x": 460, "y": 420 },
+        "funnels": { "x": 880, "y": 60 },
+        "funnel_steps": { "x": 880, "y": 320 },
+        "dashboards": { "x": 1280, "y": 60 },
+        "widgets": { "x": 1280, "y": 340 }
+      }
+    }
+  }
+}

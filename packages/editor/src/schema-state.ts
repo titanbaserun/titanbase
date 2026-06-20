@@ -19,8 +19,11 @@ export type ColumnPatch = { name?: string; type?: string; nativeType?: string | 
 export type RelationPatch = { name?: string; from?: TitanRelation["from"]; to?: TitanRelation["to"]; cardinality?: TitanRelation["cardinality"]; onDelete?: TitanRelation["onDelete"] | undefined; onUpdate?: TitanRelation["onUpdate"] | undefined; description?: string | undefined };
 export type IndexPatch = { name?: string; columns?: string[]; unique?: boolean; method?: string | undefined; where?: string | undefined; description?: string | undefined };
 export type EnumPatch = { name?: string; values?: string[]; description?: string | undefined };
+export type ProjectPatch = { name?: string; description?: string | undefined };
 
 export type SchemaMutation =
+  | { type: "project.update"; patch: ProjectPatch }
+  | { type: "dialect.update"; dialect: TitanSchema["dialect"] }
   | { type: "table.add"; table: TitanTable; position: TitanPosition }
   | { type: "table.update"; tableId: string; patch: TablePatch }
   | { type: "table.delete"; tableId: string }
@@ -41,6 +44,12 @@ export type SchemaMutation =
 
 export function applySchemaMutation(schema: TitanSchema, mutation: SchemaMutation): TitanSchema {
   switch (mutation.type) {
+    case "project.update":
+      return { ...schema, project: mergePatch(schema.project, mutation.patch) };
+
+    case "dialect.update":
+      return { ...schema, dialect: mutation.dialect };
+
     // ----- Tables -----
 
     case "table.add":

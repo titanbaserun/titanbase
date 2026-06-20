@@ -7,7 +7,7 @@
 // Consumers:
 //   - @titanbase/editor (visual editor)
 //   - @titanbase/export-postgres (SQL code gen)
-//   - Future: CLI, other exporters, cloud sync
+//   - future exporter packages
 // ---------------------------------------------------------------------------
 
 // Types — the .titan.json data model
@@ -43,3 +43,6 @@ export { diagnoseSchema, validateTitanSchema } from "./diagnostics";
 
 // Normalization — canonical form for deterministic output
 export { normalizeSchema } from "./normalize";
+
+// Factory for a valid blank project.
+export { createEmptySchema, type EmptySchemaOptions } from "./create-empty-schema";

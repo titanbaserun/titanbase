@@ -1,0 +1,158 @@
+{
+  "titanVersion": "1.0",
+  "project": { "id": "content-platform", "name": "Content Management Platform" },
+  "dialect": "postgres",
+  "tables": [
+    {
+      "id": "authors", "name": "authors", "description": "Content creators and editors.",
+      "columns": [
+        { "id": "authors.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "authors.email", "name": "email", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "authors.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "authors.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "authors.bio", "name": "bio", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "authors.avatar_url", "name": "avatar_url", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "authors.role", "name": "role", "type": "author_role", "nullable": false, "primaryKey": false, "unique": false, "default": "'writer'" },
+        { "id": "authors.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "authors.email_idx", "name": "authors_email_idx", "table": "authors", "columns": ["authors.email"], "unique": true },
+        { "id": "authors.slug_idx", "name": "authors_slug_idx", "table": "authors", "columns": ["authors.slug"], "unique": true }
+      ]
+    },
+    {
+      "id": "categories", "name": "categories", "description": "Content categories for organization.",
+      "columns": [
+        { "id": "categories.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "categories.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "categories.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "categories.description", "name": "description", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "categories.parent_id", "name": "parent_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "categories.position", "name": "position", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" }
+      ],
+      "indexes": [
+        { "id": "categories.slug_idx", "name": "categories_slug_idx", "table": "categories", "columns": ["categories.slug"], "unique": true }
+      ]
+    },
+    {
+      "id": "articles", "name": "articles", "description": "Published and draft articles.",
+      "columns": [
+        { "id": "articles.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "articles.author_id", "name": "author_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "articles.category_id", "name": "category_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "articles.title", "name": "title", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "articles.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "articles.excerpt", "name": "excerpt", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "articles.body", "name": "body", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "articles.cover_image_url", "name": "cover_image_url", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "articles.status", "name": "status", "type": "article_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'draft'" },
+        { "id": "articles.featured", "name": "featured", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "false" },
+        { "id": "articles.seo_title", "name": "seo_title", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "articles.seo_description", "name": "seo_description", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "articles.published_at", "name": "published_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "articles.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "articles.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "articles.slug_idx", "name": "articles_slug_idx", "table": "articles", "columns": ["articles.slug"], "unique": true },
+        { "id": "articles.author_idx", "name": "articles_author_idx", "table": "articles", "columns": ["articles.author_id"], "unique": false },
+        { "id": "articles.status_published_idx", "name": "articles_status_published_idx", "table": "articles", "columns": ["articles.status", "articles.published_at"], "unique": false }
+      ]
+    },
+    {
+      "id": "tags", "name": "tags", "description": "Content tags for cross-category discovery.",
+      "columns": [
+        { "id": "tags.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "tags.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "tags.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true }
+      ],
+      "indexes": [
+        { "id": "tags.slug_idx", "name": "tags_slug_idx", "table": "tags", "columns": ["tags.slug"], "unique": true }
+      ]
+    },
+    {
+      "id": "article_tags", "name": "article_tags", "description": "Many-to-many: articles to tags.",
+      "columns": [
+        { "id": "article_tags.article_id", "name": "article_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "article_tags.tag_id", "name": "tag_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false }
+      ],
+      "indexes": [
+        { "id": "article_tags.tag_idx", "name": "article_tags_tag_idx", "table": "article_tags", "columns": ["article_tags.tag_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "media", "name": "media", "description": "Uploaded media assets (images, videos, documents).",
+      "columns": [
+        { "id": "media.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "media.uploaded_by", "name": "uploaded_by", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "media.file_name", "name": "file_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "media.file_url", "name": "file_url", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "media.mime_type", "name": "mime_type", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "media.size_bytes", "name": "size_bytes", "type": "bigint", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "media.alt_text", "name": "alt_text", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "media.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "media.uploaded_by_idx", "name": "media_uploaded_by_idx", "table": "media", "columns": ["media.uploaded_by"], "unique": false }
+      ]
+    },
+    {
+      "id": "comments", "name": "comments", "description": "Reader comments on articles.",
+      "columns": [
+        { "id": "comments.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "comments.article_id", "name": "article_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "comments.parent_id", "name": "parent_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false, "description": "Supports nested comment threads." },
+        { "id": "comments.author_name", "name": "author_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "comments.author_email", "name": "author_email", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "comments.body", "name": "body", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "comments.is_approved", "name": "is_approved", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "false" },
+        { "id": "comments.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "comments.article_idx", "name": "comments_article_idx", "table": "comments", "columns": ["comments.article_id"], "unique": false },
+        { "id": "comments.parent_idx", "name": "comments_parent_idx", "table": "comments", "columns": ["comments.parent_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "redirects", "name": "redirects", "description": "URL redirects for moved or renamed content.",
+      "columns": [
+        { "id": "redirects.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "redirects.from_path", "name": "from_path", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "redirects.to_path", "name": "to_path", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "redirects.status_code", "name": "status_code", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "301" },
+        { "id": "redirects.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "redirects.from_path_idx", "name": "redirects_from_path_idx", "table": "redirects", "columns": ["redirects.from_path"], "unique": true }
+      ]
+    }
+  ],
+  "enums": [
+    { "id": "author_role", "name": "author_role", "values": ["writer", "editor", "admin"], "description": "Editorial team roles." },
+    { "id": "article_status", "name": "article_status", "values": ["draft", "in_review", "published", "archived"], "description": "Article publication workflow." }
+  ],
+  "relations": [
+    { "id": "categories_parent", "name": "categories_parent", "from": { "table": "categories", "columns": ["categories.parent_id"] }, "to": { "table": "categories", "columns": ["categories.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "articles_author", "name": "articles_author", "from": { "table": "articles", "columns": ["articles.author_id"] }, "to": { "table": "authors", "columns": ["authors.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "articles_category", "name": "articles_category", "from": { "table": "articles", "columns": ["articles.category_id"] }, "to": { "table": "categories", "columns": ["categories.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "article_tags_article", "name": "article_tags_article", "from": { "table": "article_tags", "columns": ["article_tags.article_id"] }, "to": { "table": "articles", "columns": ["articles.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "article_tags_tag", "name": "article_tags_tag", "from": { "table": "article_tags", "columns": ["article_tags.tag_id"] }, "to": { "table": "tags", "columns": ["tags.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "media_uploaded_by", "name": "media_uploaded_by", "from": { "table": "media", "columns": ["media.uploaded_by"] }, "to": { "table": "authors", "columns": ["authors.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "comments_article", "name": "comments_article", "from": { "table": "comments", "columns": ["comments.article_id"] }, "to": { "table": "articles", "columns": ["articles.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "comments_parent", "name": "comments_parent", "from": { "table": "comments", "columns": ["comments.parent_id"] }, "to": { "table": "comments", "columns": ["comments.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" }
+  ],
+  "metadata": {
+    "editor": {
+      "tablePositions": {
+        "authors": { "x": 60, "y": 60 },
+        "categories": { "x": 60, "y": 400 },
+        "articles": { "x": 480, "y": 60 },
+        "tags": { "x": 480, "y": 500 },
+        "article_tags": { "x": 480, "y": 700 },
+        "media": { "x": 920, "y": 60 },
+        "comments": { "x": 920, "y": 380 },
+        "redirects": { "x": 1340, "y": 220 }
+      }
+    }
+  }
+}

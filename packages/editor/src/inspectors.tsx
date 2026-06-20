@@ -2,6 +2,7 @@ import { ArrowLeft, Columns, Database, Key, Link, ListBullets, Plus, Table as Ta
 import type { RelationCardinality, ReferentialAction, TitanEnum, TitanIndex, TitanRelation, TitanSchema, TitanTable } from "@titanbase/core";
 import { Badge, Button, Input, Select, Textarea } from "@titanbase/ui";
 import type { ColumnPatch, EditorSelection, EnumPatch, IndexPatch, RelationPatch, SchemaMutation } from "./schema-state";
+import { createRelationLabel } from "./schema-visuals";
 
 interface InspectorProps {
   schema: TitanSchema;
@@ -22,9 +23,11 @@ function InspectorHeading({ eyebrow, title, icon, onBack }: { eyebrow: string; t
 }
 
 function TableInspector({ schema, table, commit, select, createColumn, createIndex }: { table: TitanTable } & Pick<InspectorProps, "schema" | "commit" | "select" | "createColumn" | "createIndex">) {
+  const relations = schema.relations.filter((relation) => relation.from.table === table.id || relation.to.table === table.id);
   return <div className="inspector-content">
     <InspectorHeading eyebrow="Table" title={table.name} icon={<TableIcon size={23} weight="duotone" />} />
     <label className="field-label">Name<Input value={table.name} onChange={(event) => commit({ type: "table.update", tableId: table.id, patch: { name: event.target.value } })} /></label>
+    <label className="field-label">Schema namespace<Input value={table.schema ?? ""} placeholder="public" onChange={(event) => commit({ type: "table.update", tableId: table.id, patch: { schema: textOrUndefined(event.target.value) } })} /></label>
     <label className="field-label">Description<Textarea rows={3} value={table.description ?? ""} onChange={(event) => commit({ type: "table.update", tableId: table.id, patch: { description: textOrUndefined(event.target.value) } })} /></label>
 
     <div className="section-heading"><div><span>Columns</span><small>{table.columns.length} fields</small></div><Button onClick={() => createColumn(table)}><Plus size={16} /> Add column</Button></div>
@@ -45,12 +48,13 @@ function TableInspector({ schema, table, commit, select, createColumn, createInd
       </button>) : <div className="inline-empty">No indexes defined.</div>}
     </div>
 
-    <div className="section-heading"><div><span>Schema objects</span><small>{schema.relations.length} relations · {schema.enums.length} enums</small></div></div>
+    <div className="section-heading"><div><span>Relations</span><small>{relations.length} connected</small></div></div>
     <div className="object-list">
-      {schema.relations.filter((relation) => relation.from.table === table.id || relation.to.table === table.id).map((relation) => <button className="object-row" key={relation.id} onClick={() => select({ kind: "relation", relationId: relation.id })}><span className="object-row__icon"><Link size={16} /></span><span><strong>{relation.name}</strong><small>{relation.cardinality}</small></span></button>)}
-      {schema.enums.map((enumDefinition) => <button className="object-row" key={enumDefinition.id} onClick={() => select({ kind: "enum", enumId: enumDefinition.id })}><span className="object-row__icon"><Database size={16} /></span><span><strong>{enumDefinition.name}</strong><small>{enumDefinition.values.length} values</small></span></button>)}
-      {!schema.relations.some((relation) => relation.from.table === table.id || relation.to.table === table.id) && !schema.enums.length ? <div className="inline-empty">No related schema objects.</div> : null}
+      {relations.map((relation) => <button className="object-row" key={relation.id} onClick={() => select({ kind: "relation", relationId: relation.id })}><span className="object-row__icon"><Link size={16} /></span><span><strong>{relation.name}</strong><small title={createRelationLabel(schema, relation)}>{createRelationLabel(schema, relation)}</small></span></button>)}
+      {!relations.length ? <div className="inline-empty">No relations connected.</div> : null}
     </div>
+
+    <div className="danger-zone"><div><strong>Delete table</strong><small>Also removes its relations and indexes.</small></div><Button className="danger-button" onClick={() => { commit({ type: "table.delete", tableId: table.id }); select(null); }}><Trash size={16} /> Delete</Button></div>
   </div>;
 }
 
@@ -58,6 +62,8 @@ function ColumnInspector({ schema, table, columnId, commit, select }: { schema: 
   const column = table.columns.find((item) => item.id === columnId);
   if (!column) return <EmptyInspector />;
   const update = (patch: ColumnPatch) => commit({ type: "column.update", tableId: table.id, columnId: column.id, patch });
+  const relations = schema.relations.filter((relation) => relation.from.columns.includes(column.id) || relation.to.columns.includes(column.id));
+  const indexes = table.indexes.filter((index) => index.columns.includes(column.id));
   return <div className="inspector-content">
     <InspectorHeading eyebrow={`Column · ${table.name}`} title={column.name} icon={<Columns size={23} weight="duotone" />} onBack={() => select({ kind: "table", tableId: table.id })} />
     <label className="field-label">Name<Input value={column.name} onChange={(event) => update({ name: event.target.value })} /></label>
@@ -69,6 +75,12 @@ function ColumnInspector({ schema, table, columnId, commit, select }: { schema: 
       <label><input type="checkbox" checked={column.nullable} onChange={(event) => update({ nullable: event.target.checked })} /><span><strong>Nullable</strong><small>Allow null values</small></span></label>
       <label><input type="checkbox" checked={column.primaryKey} onChange={(event) => update({ primaryKey: event.target.checked })} /><span><strong>Primary key</strong><small>Identify each row</small></span></label>
       <label><input type="checkbox" checked={column.unique} onChange={(event) => update({ unique: event.target.checked })} /><span><strong>Unique</strong><small>Reject duplicate values</small></span></label>
+    </div>
+    <div className="section-heading"><div><span>Usage</span><small>{relations.length} relations · {indexes.length} indexes</small></div></div>
+    <div className="object-list">
+      {relations.map((relation) => <button className="object-row" key={relation.id} onClick={() => select({ kind: "relation", relationId: relation.id })}><span className="object-row__icon"><Link size={16} /></span><span><strong>{relation.name}</strong><small title={createRelationLabel(schema, relation)}>{createRelationLabel(schema, relation)}</small></span></button>)}
+      {indexes.map((index) => <button className="object-row" key={index.id} onClick={() => select({ kind: "index", tableId: table.id, indexId: index.id })}><span className="object-row__icon"><ListBullets size={16} /></span><span><strong>{index.name}</strong><small>{index.method ?? "btree"} index</small></span></button>)}
+      {!relations.length && !indexes.length ? <div className="inline-empty">Not used by a relation or index.</div> : null}
     </div>
   </div>;
 }

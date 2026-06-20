@@ -1,0 +1,166 @@
+{
+  "titanVersion": "1.0",
+  "project": { "id": "inventory-management", "name": "Inventory & Warehouse" },
+  "dialect": "postgres",
+  "tables": [
+    {
+      "id": "warehouses", "name": "warehouses", "description": "Physical storage locations.",
+      "columns": [
+        { "id": "warehouses.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "warehouses.code", "name": "code", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "warehouses.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "warehouses.address", "name": "address", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "warehouses.city", "name": "city", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "warehouses.country", "name": "country", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "warehouses.capacity_units", "name": "capacity_units", "type": "integer", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "warehouses.is_active", "name": "is_active", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "true" },
+        { "id": "warehouses.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "warehouses.code_idx", "name": "warehouses_code_idx", "table": "warehouses", "columns": ["warehouses.code"], "unique": true }
+      ]
+    },
+    {
+      "id": "zones", "name": "zones", "description": "Storage zones within a warehouse (aisle, rack, shelf).",
+      "columns": [
+        { "id": "zones.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "zones.warehouse_id", "name": "warehouse_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "zones.code", "name": "code", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "zones.name", "name": "name", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "zones.zone_type", "name": "zone_type", "type": "zone_type", "nullable": false, "primaryKey": false, "unique": false }
+      ],
+      "indexes": [
+        { "id": "zones.warehouse_code_idx", "name": "zones_warehouse_code_idx", "table": "zones", "columns": ["zones.warehouse_id", "zones.code"], "unique": true }
+      ]
+    },
+    {
+      "id": "categories", "name": "categories", "description": "Product categories for classification.",
+      "columns": [
+        { "id": "categories.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "categories.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "categories.code", "name": "code", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "categories.parent_id", "name": "parent_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false }
+      ],
+      "indexes": [
+        { "id": "categories.code_idx", "name": "categories_code_idx", "table": "categories", "columns": ["categories.code"], "unique": true }
+      ]
+    },
+    {
+      "id": "products", "name": "products", "description": "Items tracked in inventory.",
+      "columns": [
+        { "id": "products.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "products.sku", "name": "sku", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "products.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "products.description", "name": "description", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "products.category_id", "name": "category_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "products.unit_of_measure", "name": "unit_of_measure", "type": "text", "nullable": false, "primaryKey": false, "unique": false, "default": "'each'" },
+        { "id": "products.weight_kg", "name": "weight_kg", "type": "numeric", "nativeType": "numeric(10,3)", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "products.cost_price", "name": "cost_price", "type": "numeric", "nativeType": "numeric(12,2)", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "products.reorder_point", "name": "reorder_point", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0", "description": "Stock level that triggers reorder." },
+        { "id": "products.reorder_quantity", "name": "reorder_quantity", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
+        { "id": "products.is_active", "name": "is_active", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "true" },
+        { "id": "products.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "products.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "products.sku_idx", "name": "products_sku_idx", "table": "products", "columns": ["products.sku"], "unique": true },
+        { "id": "products.category_idx", "name": "products_category_idx", "table": "products", "columns": ["products.category_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "stock_levels", "name": "stock_levels", "description": "Current quantity of each product per zone.",
+      "columns": [
+        { "id": "stock_levels.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "stock_levels.product_id", "name": "product_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "stock_levels.zone_id", "name": "zone_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "stock_levels.quantity_on_hand", "name": "quantity_on_hand", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
+        { "id": "stock_levels.quantity_reserved", "name": "quantity_reserved", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
+        { "id": "stock_levels.quantity_available", "name": "quantity_available", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0", "description": "on_hand - reserved, maintained via trigger." },
+        { "id": "stock_levels.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "stock_levels.product_zone_idx", "name": "stock_levels_product_zone_idx", "table": "stock_levels", "columns": ["stock_levels.product_id", "stock_levels.zone_id"], "unique": true },
+        { "id": "stock_levels.zone_idx", "name": "stock_levels_zone_idx", "table": "stock_levels", "columns": ["stock_levels.zone_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "stock_movements", "name": "stock_movements", "description": "Immutable log of all inventory changes.",
+      "columns": [
+        { "id": "stock_movements.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "stock_movements.product_id", "name": "product_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "stock_movements.from_zone_id", "name": "from_zone_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false, "description": "Null for inbound receipts." },
+        { "id": "stock_movements.to_zone_id", "name": "to_zone_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false, "description": "Null for outbound shipments." },
+        { "id": "stock_movements.quantity", "name": "quantity", "type": "integer", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "stock_movements.movement_type", "name": "movement_type", "type": "movement_type", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "stock_movements.reference_number", "name": "reference_number", "type": "text", "nullable": true, "primaryKey": false, "unique": false, "description": "PO or SO reference." },
+        { "id": "stock_movements.notes", "name": "notes", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "stock_movements.performed_by", "name": "performed_by", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "stock_movements.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "stock_movements.product_idx", "name": "stock_movements_product_idx", "table": "stock_movements", "columns": ["stock_movements.product_id"], "unique": false },
+        { "id": "stock_movements.type_idx", "name": "stock_movements_type_idx", "table": "stock_movements", "columns": ["stock_movements.movement_type"], "unique": false },
+        { "id": "stock_movements.created_at_idx", "name": "stock_movements_created_at_idx", "table": "stock_movements", "columns": ["stock_movements.created_at"], "unique": false }
+      ]
+    },
+    {
+      "id": "suppliers", "name": "suppliers", "description": "Vendors who supply products.",
+      "columns": [
+        { "id": "suppliers.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "suppliers.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "suppliers.code", "name": "code", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "suppliers.contact_email", "name": "contact_email", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "suppliers.contact_phone", "name": "contact_phone", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "suppliers.lead_time_days", "name": "lead_time_days", "type": "integer", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "suppliers.is_active", "name": "is_active", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "true" },
+        { "id": "suppliers.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "suppliers.code_idx", "name": "suppliers_code_idx", "table": "suppliers", "columns": ["suppliers.code"], "unique": true }
+      ]
+    },
+    {
+      "id": "product_suppliers", "name": "product_suppliers", "description": "Many-to-many: which suppliers provide which products.",
+      "columns": [
+        { "id": "product_suppliers.product_id", "name": "product_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "product_suppliers.supplier_id", "name": "supplier_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "product_suppliers.supplier_sku", "name": "supplier_sku", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "product_suppliers.unit_cost", "name": "unit_cost", "type": "numeric", "nativeType": "numeric(12,2)", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "product_suppliers.is_preferred", "name": "is_preferred", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "false" }
+      ],
+      "indexes": [
+        { "id": "product_suppliers.supplier_idx", "name": "product_suppliers_supplier_idx", "table": "product_suppliers", "columns": ["product_suppliers.supplier_id"], "unique": false }
+      ]
+    }
+  ],
+  "enums": [
+    { "id": "zone_type", "name": "zone_type", "values": ["receiving", "storage", "picking", "packing", "shipping", "quarantine", "returns"], "description": "Warehouse zone function." },
+    { "id": "movement_type", "name": "movement_type", "values": ["receipt", "shipment", "transfer", "adjustment", "return", "write_off"], "description": "Type of inventory movement." }
+  ],
+  "relations": [
+    { "id": "zones_warehouse", "name": "zones_warehouse", "from": { "table": "zones", "columns": ["zones.warehouse_id"] }, "to": { "table": "warehouses", "columns": ["warehouses.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "categories_parent", "name": "categories_parent", "from": { "table": "categories", "columns": ["categories.parent_id"] }, "to": { "table": "categories", "columns": ["categories.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "products_category", "name": "products_category", "from": { "table": "products", "columns": ["products.category_id"] }, "to": { "table": "categories", "columns": ["categories.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "stock_levels_product", "name": "stock_levels_product", "from": { "table": "stock_levels", "columns": ["stock_levels.product_id"] }, "to": { "table": "products", "columns": ["products.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "stock_levels_zone", "name": "stock_levels_zone", "from": { "table": "stock_levels", "columns": ["stock_levels.zone_id"] }, "to": { "table": "zones", "columns": ["zones.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "stock_movements_product", "name": "stock_movements_product", "from": { "table": "stock_movements", "columns": ["stock_movements.product_id"] }, "to": { "table": "products", "columns": ["products.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "stock_movements_from_zone", "name": "stock_movements_from_zone", "from": { "table": "stock_movements", "columns": ["stock_movements.from_zone_id"] }, "to": { "table": "zones", "columns": ["zones.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "stock_movements_to_zone", "name": "stock_movements_to_zone", "from": { "table": "stock_movements", "columns": ["stock_movements.to_zone_id"] }, "to": { "table": "zones", "columns": ["zones.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "product_suppliers_product", "name": "product_suppliers_product", "from": { "table": "product_suppliers", "columns": ["product_suppliers.product_id"] }, "to": { "table": "products", "columns": ["products.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "product_suppliers_supplier", "name": "product_suppliers_supplier", "from": { "table": "product_suppliers", "columns": ["product_suppliers.supplier_id"] }, "to": { "table": "suppliers", "columns": ["suppliers.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" }
+  ],
+  "metadata": {
+    "editor": {
+      "tablePositions": {
+        "warehouses": { "x": 60, "y": 60 },
+        "zones": { "x": 60, "y": 360 },
+        "categories": { "x": 480, "y": 60 },
+        "products": { "x": 480, "y": 320 },
+        "stock_levels": { "x": 920, "y": 60 },
+        "stock_movements": { "x": 920, "y": 380 },
+        "suppliers": { "x": 1360, "y": 60 },
+        "product_suppliers": { "x": 1360, "y": 360 }
+      }
+    }
+  }
+}

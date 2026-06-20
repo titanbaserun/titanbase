@@ -1,0 +1,148 @@
+{
+  "titanVersion": "1.0",
+  "project": { "id": "hr-management", "name": "HR Management System" },
+  "dialect": "postgres",
+  "tables": [
+    {
+      "id": "departments", "name": "departments", "description": "Organizational departments.",
+      "columns": [
+        { "id": "departments.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "departments.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "departments.code", "name": "code", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "departments.parent_id", "name": "parent_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false, "description": "Parent department for org hierarchy." },
+        { "id": "departments.head_id", "name": "head_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "departments.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "departments.code_idx", "name": "departments_code_idx", "table": "departments", "columns": ["departments.code"], "unique": true }
+      ]
+    },
+    {
+      "id": "positions", "name": "positions", "description": "Job titles and role definitions.",
+      "columns": [
+        { "id": "positions.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "positions.title", "name": "title", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "positions.department_id", "name": "department_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "positions.level", "name": "level", "type": "seniority_level", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "positions.min_salary", "name": "min_salary", "type": "numeric", "nativeType": "numeric(12,2)", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "positions.max_salary", "name": "max_salary", "type": "numeric", "nativeType": "numeric(12,2)", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "positions.is_active", "name": "is_active", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "true" }
+      ],
+      "indexes": [
+        { "id": "positions.department_idx", "name": "positions_department_idx", "table": "positions", "columns": ["positions.department_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "employees", "name": "employees", "description": "Company employees.",
+      "columns": [
+        { "id": "employees.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "employees.employee_number", "name": "employee_number", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "employees.first_name", "name": "first_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "employees.last_name", "name": "last_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "employees.email", "name": "email", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "employees.phone", "name": "phone", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "employees.date_of_birth", "name": "date_of_birth", "type": "date", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "employees.hire_date", "name": "hire_date", "type": "date", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "employees.termination_date", "name": "termination_date", "type": "date", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "employees.department_id", "name": "department_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "employees.position_id", "name": "position_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "employees.manager_id", "name": "manager_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "employees.employment_type", "name": "employment_type", "type": "employment_type", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "employees.status", "name": "status", "type": "employee_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'active'" },
+        { "id": "employees.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "employees.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "employees.employee_number_idx", "name": "employees_employee_number_idx", "table": "employees", "columns": ["employees.employee_number"], "unique": true },
+        { "id": "employees.email_idx", "name": "employees_email_idx", "table": "employees", "columns": ["employees.email"], "unique": true },
+        { "id": "employees.department_idx", "name": "employees_department_idx", "table": "employees", "columns": ["employees.department_id"], "unique": false },
+        { "id": "employees.manager_idx", "name": "employees_manager_idx", "table": "employees", "columns": ["employees.manager_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "compensation", "name": "compensation", "description": "Salary and compensation history.",
+      "columns": [
+        { "id": "compensation.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "compensation.employee_id", "name": "employee_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "compensation.base_salary", "name": "base_salary", "type": "numeric", "nativeType": "numeric(12,2)", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "compensation.currency", "name": "currency", "type": "text", "nullable": false, "primaryKey": false, "unique": false, "default": "'USD'" },
+        { "id": "compensation.effective_date", "name": "effective_date", "type": "date", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "compensation.reason", "name": "reason", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "compensation.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "compensation.employee_date_idx", "name": "compensation_employee_date_idx", "table": "compensation", "columns": ["compensation.employee_id", "compensation.effective_date"], "unique": true }
+      ]
+    },
+    {
+      "id": "leave_requests", "name": "leave_requests", "description": "Time-off and vacation requests.",
+      "columns": [
+        { "id": "leave_requests.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "leave_requests.employee_id", "name": "employee_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "leave_requests.leave_type", "name": "leave_type", "type": "leave_type", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "leave_requests.start_date", "name": "start_date", "type": "date", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "leave_requests.end_date", "name": "end_date", "type": "date", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "leave_requests.days_count", "name": "days_count", "type": "numeric", "nativeType": "numeric(4,1)", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "leave_requests.reason", "name": "reason", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "leave_requests.status", "name": "status", "type": "leave_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'pending'" },
+        { "id": "leave_requests.approved_by", "name": "approved_by", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "leave_requests.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "leave_requests.employee_idx", "name": "leave_requests_employee_idx", "table": "leave_requests", "columns": ["leave_requests.employee_id"], "unique": false },
+        { "id": "leave_requests.status_idx", "name": "leave_requests_status_idx", "table": "leave_requests", "columns": ["leave_requests.status"], "unique": false }
+      ]
+    },
+    {
+      "id": "performance_reviews", "name": "performance_reviews", "description": "Annual or quarterly performance evaluations.",
+      "columns": [
+        { "id": "performance_reviews.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "performance_reviews.employee_id", "name": "employee_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "performance_reviews.reviewer_id", "name": "reviewer_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "performance_reviews.period_start", "name": "period_start", "type": "date", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "performance_reviews.period_end", "name": "period_end", "type": "date", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "performance_reviews.rating", "name": "rating", "type": "integer", "nullable": true, "primaryKey": false, "unique": false, "description": "1-5 performance rating." },
+        { "id": "performance_reviews.summary", "name": "summary", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "performance_reviews.goals", "name": "goals", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "performance_reviews.status", "name": "status", "type": "review_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'draft'" },
+        { "id": "performance_reviews.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "performance_reviews.employee_period_idx", "name": "performance_reviews_employee_period_idx", "table": "performance_reviews", "columns": ["performance_reviews.employee_id", "performance_reviews.period_start"], "unique": false }
+      ]
+    }
+  ],
+  "enums": [
+    { "id": "seniority_level", "name": "seniority_level", "values": ["intern", "junior", "mid", "senior", "lead", "principal", "director", "vp", "c_level"], "description": "Career seniority levels." },
+    { "id": "employment_type", "name": "employment_type", "values": ["full_time", "part_time", "contract", "intern"], "description": "Types of employment." },
+    { "id": "employee_status", "name": "employee_status", "values": ["active", "on_leave", "terminated", "retired"], "description": "Current employment status." },
+    { "id": "leave_type", "name": "leave_type", "values": ["vacation", "sick", "personal", "parental", "bereavement", "unpaid"], "description": "Categories of time off." },
+    { "id": "leave_status", "name": "leave_status", "values": ["pending", "approved", "rejected", "cancelled"], "description": "Leave request approval states." },
+    { "id": "review_status", "name": "review_status", "values": ["draft", "submitted", "acknowledged", "completed"], "description": "Performance review workflow." }
+  ],
+  "relations": [
+    { "id": "departments_parent", "name": "departments_parent", "from": { "table": "departments", "columns": ["departments.parent_id"] }, "to": { "table": "departments", "columns": ["departments.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "departments_head", "name": "departments_head", "from": { "table": "departments", "columns": ["departments.head_id"] }, "to": { "table": "employees", "columns": ["employees.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "positions_department", "name": "positions_department", "from": { "table": "positions", "columns": ["positions.department_id"] }, "to": { "table": "departments", "columns": ["departments.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "employees_department", "name": "employees_department", "from": { "table": "employees", "columns": ["employees.department_id"] }, "to": { "table": "departments", "columns": ["departments.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "employees_position", "name": "employees_position", "from": { "table": "employees", "columns": ["employees.position_id"] }, "to": { "table": "positions", "columns": ["positions.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "employees_manager", "name": "employees_manager", "from": { "table": "employees", "columns": ["employees.manager_id"] }, "to": { "table": "employees", "columns": ["employees.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "compensation_employee", "name": "compensation_employee", "from": { "table": "compensation", "columns": ["compensation.employee_id"] }, "to": { "table": "employees", "columns": ["employees.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "leave_requests_employee", "name": "leave_requests_employee", "from": { "table": "leave_requests", "columns": ["leave_requests.employee_id"] }, "to": { "table": "employees", "columns": ["employees.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "leave_requests_approved_by", "name": "leave_requests_approved_by", "from": { "table": "leave_requests", "columns": ["leave_requests.approved_by"] }, "to": { "table": "employees", "columns": ["employees.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "performance_reviews_employee", "name": "performance_reviews_employee", "from": { "table": "performance_reviews", "columns": ["performance_reviews.employee_id"] }, "to": { "table": "employees", "columns": ["employees.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "performance_reviews_reviewer", "name": "performance_reviews_reviewer", "from": { "table": "performance_reviews", "columns": ["performance_reviews.reviewer_id"] }, "to": { "table": "employees", "columns": ["employees.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" }
+  ],
+  "metadata": {
+    "editor": {
+      "tablePositions": {
+        "departments": { "x": 60, "y": 60 },
+        "positions": { "x": 60, "y": 380 },
+        "employees": { "x": 500, "y": 60 },
+        "compensation": { "x": 500, "y": 480 },
+        "leave_requests": { "x": 960, "y": 60 },
+        "performance_reviews": { "x": 960, "y": 420 }
+      }
+    }
+  }
+}

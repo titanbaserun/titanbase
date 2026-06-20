@@ -1,0 +1,154 @@
+{
+  "titanVersion": "1.0",
+  "project": { "id": "learning-app", "name": "Online Learning Platform" },
+  "dialect": "postgres",
+  "tables": [
+    {
+      "id": "users", "name": "users", "description": "Platform users who can be students or instructors.",
+      "columns": [
+        { "id": "users.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "users.email", "name": "email", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "users.display_name", "name": "display_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "users.avatar_url", "name": "avatar_url", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "users.bio", "name": "bio", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "users.role", "name": "role", "type": "user_role", "nullable": false, "primaryKey": false, "unique": false, "default": "'student'" },
+        { "id": "users.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "users.email_idx", "name": "users_email_idx", "table": "users", "columns": ["users.email"], "unique": true }
+      ]
+    },
+    {
+      "id": "categories", "name": "categories", "description": "Course topic categories.",
+      "columns": [
+        { "id": "categories.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "categories.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "categories.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "categories.parent_id", "name": "parent_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false, "description": "Allows nested sub-categories." }
+      ],
+      "indexes": [
+        { "id": "categories.slug_idx", "name": "categories_slug_idx", "table": "categories", "columns": ["categories.slug"], "unique": true }
+      ]
+    },
+    {
+      "id": "courses", "name": "courses", "description": "Learning courses published by instructors.",
+      "columns": [
+        { "id": "courses.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "courses.instructor_id", "name": "instructor_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "courses.category_id", "name": "category_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "courses.title", "name": "title", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "courses.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "courses.description", "name": "description", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "courses.difficulty", "name": "difficulty", "type": "difficulty_level", "nullable": false, "primaryKey": false, "unique": false, "default": "'beginner'" },
+        { "id": "courses.price", "name": "price", "type": "numeric", "nativeType": "numeric(10,2)", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
+        { "id": "courses.is_published", "name": "is_published", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "false" },
+        { "id": "courses.published_at", "name": "published_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "courses.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "courses.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "courses.slug_idx", "name": "courses_slug_idx", "table": "courses", "columns": ["courses.slug"], "unique": true },
+        { "id": "courses.instructor_idx", "name": "courses_instructor_idx", "table": "courses", "columns": ["courses.instructor_id"], "unique": false },
+        { "id": "courses.category_idx", "name": "courses_category_idx", "table": "courses", "columns": ["courses.category_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "modules", "name": "modules", "description": "Ordered sections within a course.",
+      "columns": [
+        { "id": "modules.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "modules.course_id", "name": "course_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "modules.title", "name": "title", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "modules.position", "name": "position", "type": "integer", "nullable": false, "primaryKey": false, "unique": false }
+      ],
+      "indexes": [
+        { "id": "modules.course_position_idx", "name": "modules_course_position_idx", "table": "modules", "columns": ["modules.course_id", "modules.position"], "unique": true }
+      ]
+    },
+    {
+      "id": "lessons", "name": "lessons", "description": "Individual lessons within a module.",
+      "columns": [
+        { "id": "lessons.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "lessons.module_id", "name": "module_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "lessons.title", "name": "title", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "lessons.content_type", "name": "content_type", "type": "content_type", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "lessons.content_url", "name": "content_url", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "lessons.duration_seconds", "name": "duration_seconds", "type": "integer", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "lessons.position", "name": "position", "type": "integer", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "lessons.is_free_preview", "name": "is_free_preview", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "false" }
+      ],
+      "indexes": [
+        { "id": "lessons.module_position_idx", "name": "lessons_module_position_idx", "table": "lessons", "columns": ["lessons.module_id", "lessons.position"], "unique": true }
+      ]
+    },
+    {
+      "id": "enrollments", "name": "enrollments", "description": "Student enrollment in courses.",
+      "columns": [
+        { "id": "enrollments.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "enrollments.user_id", "name": "user_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "enrollments.course_id", "name": "course_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "enrollments.enrolled_at", "name": "enrolled_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "enrollments.completed_at", "name": "completed_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "enrollments.progress_pct", "name": "progress_pct", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" }
+      ],
+      "indexes": [
+        { "id": "enrollments.user_course_idx", "name": "enrollments_user_course_idx", "table": "enrollments", "columns": ["enrollments.user_id", "enrollments.course_id"], "unique": true }
+      ]
+    },
+    {
+      "id": "lesson_progress", "name": "lesson_progress", "description": "Tracks which lessons a student has completed.",
+      "columns": [
+        { "id": "lesson_progress.user_id", "name": "user_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "lesson_progress.lesson_id", "name": "lesson_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "lesson_progress.completed_at", "name": "completed_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "lesson_progress.watch_seconds", "name": "watch_seconds", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" }
+      ],
+      "indexes": []
+    },
+    {
+      "id": "reviews", "name": "reviews", "description": "Student ratings and reviews of courses.",
+      "columns": [
+        { "id": "reviews.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "reviews.course_id", "name": "course_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "reviews.user_id", "name": "user_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "reviews.rating", "name": "rating", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "description": "1 to 5 star rating." },
+        { "id": "reviews.comment", "name": "comment", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "reviews.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "reviews.course_user_idx", "name": "reviews_course_user_idx", "table": "reviews", "columns": ["reviews.course_id", "reviews.user_id"], "unique": true }
+      ]
+    }
+  ],
+  "enums": [
+    { "id": "user_role", "name": "user_role", "values": ["student", "instructor", "admin"], "description": "Platform user roles." },
+    { "id": "difficulty_level", "name": "difficulty_level", "values": ["beginner", "intermediate", "advanced"], "description": "Course difficulty levels." },
+    { "id": "content_type", "name": "content_type", "values": ["video", "article", "quiz", "assignment", "live_session"], "description": "Lesson content format." }
+  ],
+  "relations": [
+    { "id": "categories_parent", "name": "categories_parent", "from": { "table": "categories", "columns": ["categories.parent_id"] }, "to": { "table": "categories", "columns": ["categories.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "courses_instructor", "name": "courses_instructor", "from": { "table": "courses", "columns": ["courses.instructor_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "courses_category", "name": "courses_category", "from": { "table": "courses", "columns": ["courses.category_id"] }, "to": { "table": "categories", "columns": ["categories.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "modules_course", "name": "modules_course", "from": { "table": "modules", "columns": ["modules.course_id"] }, "to": { "table": "courses", "columns": ["courses.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "lessons_module", "name": "lessons_module", "from": { "table": "lessons", "columns": ["lessons.module_id"] }, "to": { "table": "modules", "columns": ["modules.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "enrollments_user", "name": "enrollments_user", "from": { "table": "enrollments", "columns": ["enrollments.user_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "enrollments_course", "name": "enrollments_course", "from": { "table": "enrollments", "columns": ["enrollments.course_id"] }, "to": { "table": "courses", "columns": ["courses.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "lesson_progress_user", "name": "lesson_progress_user", "from": { "table": "lesson_progress", "columns": ["lesson_progress.user_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "lesson_progress_lesson", "name": "lesson_progress_lesson", "from": { "table": "lesson_progress", "columns": ["lesson_progress.lesson_id"] }, "to": { "table": "lessons", "columns": ["lessons.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "reviews_course", "name": "reviews_course", "from": { "table": "reviews", "columns": ["reviews.course_id"] }, "to": { "table": "courses", "columns": ["courses.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "reviews_user", "name": "reviews_user", "from": { "table": "reviews", "columns": ["reviews.user_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" }
+  ],
+  "metadata": {
+    "editor": {
+      "tablePositions": {
+        "users": { "x": 60, "y": 60 },
+        "categories": { "x": 60, "y": 420 },
+        "courses": { "x": 460, "y": 60 },
+        "modules": { "x": 460, "y": 440 },
+        "lessons": { "x": 880, "y": 440 },
+        "enrollments": { "x": 880, "y": 60 },
+        "lesson_progress": { "x": 1280, "y": 440 },
+        "reviews": { "x": 1280, "y": 60 }
+      }
+    }
+  }
+}

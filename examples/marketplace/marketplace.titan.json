@@ -1,0 +1,169 @@
+{
+  "titanVersion": "1.0",
+  "project": { "id": "marketplace", "name": "Online Marketplace" },
+  "dialect": "postgres",
+  "tables": [
+    {
+      "id": "users", "name": "users", "description": "Platform users who can be buyers or sellers.",
+      "columns": [
+        { "id": "users.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "users.email", "name": "email", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "users.username", "name": "username", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "users.password_hash", "name": "password_hash", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "users.avatar_url", "name": "avatar_url", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "users.is_verified", "name": "is_verified", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "false" },
+        { "id": "users.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "users.email_idx", "name": "users_email_idx", "table": "users", "columns": ["users.email"], "unique": true },
+        { "id": "users.username_idx", "name": "users_username_idx", "table": "users", "columns": ["users.username"], "unique": true }
+      ]
+    },
+    {
+      "id": "seller_profiles", "name": "seller_profiles", "description": "Extended profile for users who sell.",
+      "columns": [
+        { "id": "seller_profiles.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "seller_profiles.user_id", "name": "user_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "seller_profiles.store_name", "name": "store_name", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "seller_profiles.description", "name": "description", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "seller_profiles.rating_avg", "name": "rating_avg", "type": "numeric", "nativeType": "numeric(3,2)", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
+        { "id": "seller_profiles.total_sales", "name": "total_sales", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
+        { "id": "seller_profiles.status", "name": "status", "type": "seller_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'pending'" },
+        { "id": "seller_profiles.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "seller_profiles.user_idx", "name": "seller_profiles_user_idx", "table": "seller_profiles", "columns": ["seller_profiles.user_id"], "unique": true },
+        { "id": "seller_profiles.store_name_idx", "name": "seller_profiles_store_name_idx", "table": "seller_profiles", "columns": ["seller_profiles.store_name"], "unique": true }
+      ]
+    },
+    {
+      "id": "categories", "name": "categories", "description": "Hierarchical product categories.",
+      "columns": [
+        { "id": "categories.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "categories.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "categories.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "categories.parent_id", "name": "parent_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false }
+      ],
+      "indexes": [
+        { "id": "categories.slug_idx", "name": "categories_slug_idx", "table": "categories", "columns": ["categories.slug"], "unique": true }
+      ]
+    },
+    {
+      "id": "listings", "name": "listings", "description": "Products listed for sale.",
+      "columns": [
+        { "id": "listings.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "listings.seller_id", "name": "seller_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "listings.category_id", "name": "category_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "listings.title", "name": "title", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "listings.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "listings.description", "name": "description", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "listings.price", "name": "price", "type": "numeric", "nativeType": "numeric(12,2)", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "listings.currency", "name": "currency", "type": "text", "nullable": false, "primaryKey": false, "unique": false, "default": "'USD'" },
+        { "id": "listings.quantity_available", "name": "quantity_available", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "1" },
+        { "id": "listings.condition", "name": "condition", "type": "item_condition", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "listings.status", "name": "status", "type": "listing_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'draft'" },
+        { "id": "listings.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "listings.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "listings.seller_idx", "name": "listings_seller_idx", "table": "listings", "columns": ["listings.seller_id"], "unique": false },
+        { "id": "listings.category_idx", "name": "listings_category_idx", "table": "listings", "columns": ["listings.category_id"], "unique": false },
+        { "id": "listings.slug_idx", "name": "listings_slug_idx", "table": "listings", "columns": ["listings.slug"], "unique": true },
+        { "id": "listings.status_idx", "name": "listings_status_idx", "table": "listings", "columns": ["listings.status"], "unique": false }
+      ]
+    },
+    {
+      "id": "listing_images", "name": "listing_images", "description": "Photos attached to listings.",
+      "columns": [
+        { "id": "listing_images.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "listing_images.listing_id", "name": "listing_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "listing_images.url", "name": "url", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "listing_images.position", "name": "position", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" }
+      ],
+      "indexes": [
+        { "id": "listing_images.listing_idx", "name": "listing_images_listing_idx", "table": "listing_images", "columns": ["listing_images.listing_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "orders", "name": "orders", "description": "Purchase orders placed by buyers.",
+      "columns": [
+        { "id": "orders.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "orders.buyer_id", "name": "buyer_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "orders.seller_id", "name": "seller_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "orders.listing_id", "name": "listing_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "orders.quantity", "name": "quantity", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "1" },
+        { "id": "orders.total_amount", "name": "total_amount", "type": "numeric", "nativeType": "numeric(14,2)", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "orders.status", "name": "status", "type": "order_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'pending'" },
+        { "id": "orders.shipping_address", "name": "shipping_address", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "orders.tracking_number", "name": "tracking_number", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "orders.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "orders.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "orders.buyer_idx", "name": "orders_buyer_idx", "table": "orders", "columns": ["orders.buyer_id"], "unique": false },
+        { "id": "orders.seller_idx", "name": "orders_seller_idx", "table": "orders", "columns": ["orders.seller_id"], "unique": false },
+        { "id": "orders.status_idx", "name": "orders_status_idx", "table": "orders", "columns": ["orders.status"], "unique": false }
+      ]
+    },
+    {
+      "id": "reviews", "name": "reviews", "description": "Buyer reviews of completed orders.",
+      "columns": [
+        { "id": "reviews.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "reviews.order_id", "name": "order_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "reviews.reviewer_id", "name": "reviewer_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "reviews.seller_id", "name": "seller_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "reviews.rating", "name": "rating", "type": "integer", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "reviews.comment", "name": "comment", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "reviews.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "reviews.order_idx", "name": "reviews_order_idx", "table": "reviews", "columns": ["reviews.order_id"], "unique": true },
+        { "id": "reviews.seller_idx", "name": "reviews_seller_idx", "table": "reviews", "columns": ["reviews.seller_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "wishlists", "name": "wishlists", "description": "Saved listings for later purchase.",
+      "columns": [
+        { "id": "wishlists.user_id", "name": "user_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "wishlists.listing_id", "name": "listing_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "wishlists.added_at", "name": "added_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": []
+    }
+  ],
+  "enums": [
+    { "id": "seller_status", "name": "seller_status", "values": ["pending", "approved", "suspended"], "description": "Seller verification states." },
+    { "id": "item_condition", "name": "item_condition", "values": ["new", "like_new", "good", "fair", "poor"], "description": "Physical condition of listed items." },
+    { "id": "listing_status", "name": "listing_status", "values": ["draft", "active", "sold_out", "archived"], "description": "Listing visibility states." },
+    { "id": "order_status", "name": "order_status", "values": ["pending", "paid", "shipped", "delivered", "cancelled", "refunded", "disputed"], "description": "Order fulfillment states." }
+  ],
+  "relations": [
+    { "id": "seller_profiles_user", "name": "seller_profiles_user", "from": { "table": "seller_profiles", "columns": ["seller_profiles.user_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "one-to-one", "onDelete": "cascade" },
+    { "id": "categories_parent", "name": "categories_parent", "from": { "table": "categories", "columns": ["categories.parent_id"] }, "to": { "table": "categories", "columns": ["categories.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "listings_seller", "name": "listings_seller", "from": { "table": "listings", "columns": ["listings.seller_id"] }, "to": { "table": "seller_profiles", "columns": ["seller_profiles.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "listings_category", "name": "listings_category", "from": { "table": "listings", "columns": ["listings.category_id"] }, "to": { "table": "categories", "columns": ["categories.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "listing_images_listing", "name": "listing_images_listing", "from": { "table": "listing_images", "columns": ["listing_images.listing_id"] }, "to": { "table": "listings", "columns": ["listings.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "orders_buyer", "name": "orders_buyer", "from": { "table": "orders", "columns": ["orders.buyer_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "orders_seller", "name": "orders_seller", "from": { "table": "orders", "columns": ["orders.seller_id"] }, "to": { "table": "seller_profiles", "columns": ["seller_profiles.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "orders_listing", "name": "orders_listing", "from": { "table": "orders", "columns": ["orders.listing_id"] }, "to": { "table": "listings", "columns": ["listings.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "reviews_order", "name": "reviews_order", "from": { "table": "reviews", "columns": ["reviews.order_id"] }, "to": { "table": "orders", "columns": ["orders.id"] }, "cardinality": "one-to-one", "onDelete": "cascade" },
+    { "id": "reviews_reviewer", "name": "reviews_reviewer", "from": { "table": "reviews", "columns": ["reviews.reviewer_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "reviews_seller", "name": "reviews_seller", "from": { "table": "reviews", "columns": ["reviews.seller_id"] }, "to": { "table": "seller_profiles", "columns": ["seller_profiles.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "wishlists_user", "name": "wishlists_user", "from": { "table": "wishlists", "columns": ["wishlists.user_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "wishlists_listing", "name": "wishlists_listing", "from": { "table": "wishlists", "columns": ["wishlists.listing_id"] }, "to": { "table": "listings", "columns": ["listings.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" }
+  ],
+  "metadata": {
+    "editor": {
+      "tablePositions": {
+        "users": { "x": 60, "y": 60 },
+        "seller_profiles": { "x": 60, "y": 380 },
+        "categories": { "x": 480, "y": 60 },
+        "listings": { "x": 480, "y": 340 },
+        "listing_images": { "x": 480, "y": 700 },
+        "orders": { "x": 920, "y": 60 },
+        "reviews": { "x": 920, "y": 420 },
+        "wishlists": { "x": 1340, "y": 220 }
+      }
+    }
+  }
+}

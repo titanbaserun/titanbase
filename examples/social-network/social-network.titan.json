@@ -1,0 +1,154 @@
+{
+  "titanVersion": "1.0",
+  "project": { "id": "social-network", "name": "Social Network" },
+  "dialect": "postgres",
+  "tables": [
+    {
+      "id": "profiles", "name": "profiles", "description": "User profiles on the social platform.",
+      "columns": [
+        { "id": "profiles.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "profiles.username", "name": "username", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "profiles.email", "name": "email", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "profiles.display_name", "name": "display_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "profiles.bio", "name": "bio", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "profiles.avatar_url", "name": "avatar_url", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "profiles.cover_url", "name": "cover_url", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "profiles.location", "name": "location", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "profiles.website_url", "name": "website_url", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "profiles.is_verified", "name": "is_verified", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "false" },
+        { "id": "profiles.visibility", "name": "visibility", "type": "profile_visibility", "nullable": false, "primaryKey": false, "unique": false, "default": "'public'" },
+        { "id": "profiles.followers_count", "name": "followers_count", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
+        { "id": "profiles.following_count", "name": "following_count", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
+        { "id": "profiles.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "profiles.username_idx", "name": "profiles_username_idx", "table": "profiles", "columns": ["profiles.username"], "unique": true },
+        { "id": "profiles.email_idx", "name": "profiles_email_idx", "table": "profiles", "columns": ["profiles.email"], "unique": true }
+      ]
+    },
+    {
+      "id": "follows", "name": "follows", "description": "Follow relationships between users.",
+      "columns": [
+        { "id": "follows.follower_id", "name": "follower_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "follows.following_id", "name": "following_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "follows.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "follows.following_idx", "name": "follows_following_idx", "table": "follows", "columns": ["follows.following_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "posts", "name": "posts", "description": "User-generated content posts.",
+      "columns": [
+        { "id": "posts.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "posts.author_id", "name": "author_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "posts.content", "name": "content", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "posts.media_urls", "name": "media_urls", "type": "jsonb", "nullable": false, "primaryKey": false, "unique": false, "default": "'[]'" },
+        { "id": "posts.visibility", "name": "visibility", "type": "post_visibility", "nullable": false, "primaryKey": false, "unique": false, "default": "'public'" },
+        { "id": "posts.reply_to_id", "name": "reply_to_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false, "description": "Parent post for replies/threads." },
+        { "id": "posts.repost_of_id", "name": "repost_of_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false, "description": "Original post for reposts/quotes." },
+        { "id": "posts.likes_count", "name": "likes_count", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
+        { "id": "posts.replies_count", "name": "replies_count", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
+        { "id": "posts.reposts_count", "name": "reposts_count", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
+        { "id": "posts.deleted_at", "name": "deleted_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "posts.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "posts.author_idx", "name": "posts_author_idx", "table": "posts", "columns": ["posts.author_id", "posts.created_at"], "unique": false, "method": "btree" },
+        { "id": "posts.reply_idx", "name": "posts_reply_idx", "table": "posts", "columns": ["posts.reply_to_id"], "unique": false, "where": "reply_to_id IS NOT NULL" },
+        { "id": "posts.created_at_idx", "name": "posts_created_at_idx", "table": "posts", "columns": ["posts.created_at"], "unique": false }
+      ]
+    },
+    {
+      "id": "likes", "name": "likes", "description": "Post likes by users.",
+      "columns": [
+        { "id": "likes.user_id", "name": "user_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "likes.post_id", "name": "post_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "likes.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "likes.post_idx", "name": "likes_post_idx", "table": "likes", "columns": ["likes.post_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "bookmarks", "name": "bookmarks", "description": "Saved posts for later reading.",
+      "columns": [
+        { "id": "bookmarks.user_id", "name": "user_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "bookmarks.post_id", "name": "post_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "bookmarks.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": []
+    },
+    {
+      "id": "hashtags", "name": "hashtags", "description": "Trending topic tags.",
+      "columns": [
+        { "id": "hashtags.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "hashtags.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": true, "description": "Lowercase tag without the # symbol." },
+        { "id": "hashtags.post_count", "name": "post_count", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" }
+      ],
+      "indexes": [
+        { "id": "hashtags.name_idx", "name": "hashtags_name_idx", "table": "hashtags", "columns": ["hashtags.name"], "unique": true }
+      ]
+    },
+    {
+      "id": "post_hashtags", "name": "post_hashtags", "description": "Many-to-many: posts to hashtags.",
+      "columns": [
+        { "id": "post_hashtags.post_id", "name": "post_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "post_hashtags.hashtag_id", "name": "hashtag_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false }
+      ],
+      "indexes": [
+        { "id": "post_hashtags.hashtag_idx", "name": "post_hashtags_hashtag_idx", "table": "post_hashtags", "columns": ["post_hashtags.hashtag_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "notifications", "name": "notifications", "description": "In-app notification feed.",
+      "columns": [
+        { "id": "notifications.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "notifications.recipient_id", "name": "recipient_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "notifications.actor_id", "name": "actor_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "notifications.type", "name": "type", "type": "notification_type", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "notifications.target_id", "name": "target_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false, "description": "ID of the related post or profile." },
+        { "id": "notifications.is_read", "name": "is_read", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "false" },
+        { "id": "notifications.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "notifications.recipient_idx", "name": "notifications_recipient_idx", "table": "notifications", "columns": ["notifications.recipient_id", "notifications.created_at"], "unique": false, "method": "btree" },
+        { "id": "notifications.unread_idx", "name": "notifications_unread_idx", "table": "notifications", "columns": ["notifications.recipient_id", "notifications.is_read"], "unique": false, "where": "is_read = false" }
+      ]
+    }
+  ],
+  "enums": [
+    { "id": "profile_visibility", "name": "profile_visibility", "values": ["public", "private"], "description": "Profile visibility settings." },
+    { "id": "post_visibility", "name": "post_visibility", "values": ["public", "followers_only", "mentioned_only"], "description": "Who can see a post." },
+    { "id": "notification_type", "name": "notification_type", "values": ["like", "reply", "repost", "follow", "mention"], "description": "Notification event types." }
+  ],
+  "relations": [
+    { "id": "follows_follower", "name": "follows_follower", "from": { "table": "follows", "columns": ["follows.follower_id"] }, "to": { "table": "profiles", "columns": ["profiles.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "follows_following", "name": "follows_following", "from": { "table": "follows", "columns": ["follows.following_id"] }, "to": { "table": "profiles", "columns": ["profiles.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "posts_author", "name": "posts_author", "from": { "table": "posts", "columns": ["posts.author_id"] }, "to": { "table": "profiles", "columns": ["profiles.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "posts_reply_to", "name": "posts_reply_to", "from": { "table": "posts", "columns": ["posts.reply_to_id"] }, "to": { "table": "posts", "columns": ["posts.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "posts_repost_of", "name": "posts_repost_of", "from": { "table": "posts", "columns": ["posts.repost_of_id"] }, "to": { "table": "posts", "columns": ["posts.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "likes_user", "name": "likes_user", "from": { "table": "likes", "columns": ["likes.user_id"] }, "to": { "table": "profiles", "columns": ["profiles.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "likes_post", "name": "likes_post", "from": { "table": "likes", "columns": ["likes.post_id"] }, "to": { "table": "posts", "columns": ["posts.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "bookmarks_user", "name": "bookmarks_user", "from": { "table": "bookmarks", "columns": ["bookmarks.user_id"] }, "to": { "table": "profiles", "columns": ["profiles.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "bookmarks_post", "name": "bookmarks_post", "from": { "table": "bookmarks", "columns": ["bookmarks.post_id"] }, "to": { "table": "posts", "columns": ["posts.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "post_hashtags_post", "name": "post_hashtags_post", "from": { "table": "post_hashtags", "columns": ["post_hashtags.post_id"] }, "to": { "table": "posts", "columns": ["posts.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "post_hashtags_hashtag", "name": "post_hashtags_hashtag", "from": { "table": "post_hashtags", "columns": ["post_hashtags.hashtag_id"] }, "to": { "table": "hashtags", "columns": ["hashtags.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "notifications_recipient", "name": "notifications_recipient", "from": { "table": "notifications", "columns": ["notifications.recipient_id"] }, "to": { "table": "profiles", "columns": ["profiles.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "notifications_actor", "name": "notifications_actor", "from": { "table": "notifications", "columns": ["notifications.actor_id"] }, "to": { "table": "profiles", "columns": ["profiles.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" }
+  ],
+  "metadata": {
+    "editor": {
+      "tablePositions": {
+        "profiles": { "x": 60, "y": 60 },
+        "follows": { "x": 60, "y": 480 },
+        "posts": { "x": 500, "y": 60 },
+        "likes": { "x": 500, "y": 480 },
+        "bookmarks": { "x": 500, "y": 680 },
+        "hashtags": { "x": 960, "y": 60 },
+        "post_hashtags": { "x": 960, "y": 300 },
+        "notifications": { "x": 960, "y": 520 }
+      }
+    }
+  }
+}

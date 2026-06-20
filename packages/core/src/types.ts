@@ -69,6 +69,7 @@ export interface TitanSchema {
   project: {
     id: string;
     name: string;
+    description?: string;
   };
   dialect: TitanDialect;
   tables: TitanTable[];

@@ -1,0 +1,150 @@
+{
+  "titanVersion": "1.0",
+  "project": { "id": "booking-system", "name": "Venue Booking System" },
+  "dialect": "postgres",
+  "tables": [
+    {
+      "id": "venues", "name": "venues", "description": "Bookable venues and locations.",
+      "columns": [
+        { "id": "venues.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "venues.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "venues.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "venues.description", "name": "description", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "venues.address", "name": "address", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "venues.city", "name": "city", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "venues.country", "name": "country", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "venues.timezone", "name": "timezone", "type": "text", "nullable": false, "primaryKey": false, "unique": false, "default": "'UTC'" },
+        { "id": "venues.is_active", "name": "is_active", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "true" },
+        { "id": "venues.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "venues.slug_idx", "name": "venues_slug_idx", "table": "venues", "columns": ["venues.slug"], "unique": true },
+        { "id": "venues.city_idx", "name": "venues_city_idx", "table": "venues", "columns": ["venues.city"], "unique": false }
+      ]
+    },
+    {
+      "id": "resources", "name": "resources", "description": "Bookable resources within a venue (rooms, courts, equipment).",
+      "columns": [
+        { "id": "resources.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "resources.venue_id", "name": "venue_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "resources.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "resources.type", "name": "type", "type": "resource_type", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "resources.capacity", "name": "capacity", "type": "integer", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "resources.price_per_hour", "name": "price_per_hour", "type": "numeric", "nativeType": "numeric(10,2)", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "resources.currency", "name": "currency", "type": "text", "nullable": false, "primaryKey": false, "unique": false, "default": "'USD'" },
+        { "id": "resources.is_active", "name": "is_active", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "true" }
+      ],
+      "indexes": [
+        { "id": "resources.venue_idx", "name": "resources_venue_idx", "table": "resources", "columns": ["resources.venue_id"], "unique": false },
+        { "id": "resources.type_idx", "name": "resources_type_idx", "table": "resources", "columns": ["resources.type"], "unique": false }
+      ]
+    },
+    {
+      "id": "availability_rules", "name": "availability_rules", "description": "Recurring availability schedules for resources.",
+      "columns": [
+        { "id": "availability_rules.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "availability_rules.resource_id", "name": "resource_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "availability_rules.day_of_week", "name": "day_of_week", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "description": "0=Sunday, 6=Saturday." },
+        { "id": "availability_rules.start_time", "name": "start_time", "type": "time", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "availability_rules.end_time", "name": "end_time", "type": "time", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "availability_rules.valid_from", "name": "valid_from", "type": "date", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "availability_rules.valid_until", "name": "valid_until", "type": "date", "nullable": true, "primaryKey": false, "unique": false }
+      ],
+      "indexes": [
+        { "id": "availability_rules.resource_day_idx", "name": "availability_rules_resource_day_idx", "table": "availability_rules", "columns": ["availability_rules.resource_id", "availability_rules.day_of_week"], "unique": false }
+      ]
+    },
+    {
+      "id": "customers", "name": "customers", "description": "People who make reservations.",
+      "columns": [
+        { "id": "customers.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "customers.email", "name": "email", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "customers.full_name", "name": "full_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "customers.phone", "name": "phone", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "customers.notes", "name": "notes", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "customers.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "customers.email_idx", "name": "customers_email_idx", "table": "customers", "columns": ["customers.email"], "unique": true }
+      ]
+    },
+    {
+      "id": "reservations", "name": "reservations", "description": "Booked time slots.",
+      "columns": [
+        { "id": "reservations.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "reservations.resource_id", "name": "resource_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "reservations.customer_id", "name": "customer_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "reservations.starts_at", "name": "starts_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "reservations.ends_at", "name": "ends_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "reservations.total_price", "name": "total_price", "type": "numeric", "nativeType": "numeric(10,2)", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "reservations.status", "name": "status", "type": "reservation_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'confirmed'" },
+        { "id": "reservations.notes", "name": "notes", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "reservations.cancelled_at", "name": "cancelled_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "reservations.cancellation_reason", "name": "cancellation_reason", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "reservations.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "reservations.resource_time_idx", "name": "reservations_resource_time_idx", "table": "reservations", "columns": ["reservations.resource_id", "reservations.starts_at", "reservations.ends_at"], "unique": false },
+        { "id": "reservations.customer_idx", "name": "reservations_customer_idx", "table": "reservations", "columns": ["reservations.customer_id"], "unique": false },
+        { "id": "reservations.status_idx", "name": "reservations_status_idx", "table": "reservations", "columns": ["reservations.status"], "unique": false }
+      ]
+    },
+    {
+      "id": "payments", "name": "payments", "description": "Payment records for reservations.",
+      "columns": [
+        { "id": "payments.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "payments.reservation_id", "name": "reservation_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "payments.amount", "name": "amount", "type": "numeric", "nativeType": "numeric(10,2)", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "payments.method", "name": "method", "type": "payment_method", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "payments.status", "name": "status", "type": "payment_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'pending'" },
+        { "id": "payments.external_ref", "name": "external_ref", "type": "text", "nullable": true, "primaryKey": false, "unique": false, "description": "Payment provider reference ID." },
+        { "id": "payments.paid_at", "name": "paid_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "payments.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "payments.reservation_idx", "name": "payments_reservation_idx", "table": "payments", "columns": ["payments.reservation_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "blocked_slots", "name": "blocked_slots", "description": "Manually blocked time ranges (maintenance, holidays).",
+      "columns": [
+        { "id": "blocked_slots.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "blocked_slots.resource_id", "name": "resource_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "blocked_slots.starts_at", "name": "starts_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "blocked_slots.ends_at", "name": "ends_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "blocked_slots.reason", "name": "reason", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "blocked_slots.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "blocked_slots.resource_time_idx", "name": "blocked_slots_resource_time_idx", "table": "blocked_slots", "columns": ["blocked_slots.resource_id", "blocked_slots.starts_at"], "unique": false }
+      ]
+    }
+  ],
+  "enums": [
+    { "id": "resource_type", "name": "resource_type", "values": ["room", "court", "desk", "equipment", "studio", "outdoor"], "description": "Types of bookable resources." },
+    { "id": "reservation_status", "name": "reservation_status", "values": ["confirmed", "pending", "completed", "cancelled", "no_show"], "description": "Reservation lifecycle states." },
+    { "id": "payment_method", "name": "payment_method", "values": ["card", "bank_transfer", "cash", "wallet"], "description": "Supported payment methods." },
+    { "id": "payment_status", "name": "payment_status", "values": ["pending", "completed", "failed", "refunded"], "description": "Payment processing states." }
+  ],
+  "relations": [
+    { "id": "resources_venue", "name": "resources_venue", "from": { "table": "resources", "columns": ["resources.venue_id"] }, "to": { "table": "venues", "columns": ["venues.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "availability_rules_resource", "name": "availability_rules_resource", "from": { "table": "availability_rules", "columns": ["availability_rules.resource_id"] }, "to": { "table": "resources", "columns": ["resources.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "reservations_resource", "name": "reservations_resource", "from": { "table": "reservations", "columns": ["reservations.resource_id"] }, "to": { "table": "resources", "columns": ["resources.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "reservations_customer", "name": "reservations_customer", "from": { "table": "reservations", "columns": ["reservations.customer_id"] }, "to": { "table": "customers", "columns": ["customers.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "payments_reservation", "name": "payments_reservation", "from": { "table": "payments", "columns": ["payments.reservation_id"] }, "to": { "table": "reservations", "columns": ["reservations.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "blocked_slots_resource", "name": "blocked_slots_resource", "from": { "table": "blocked_slots", "columns": ["blocked_slots.resource_id"] }, "to": { "table": "resources", "columns": ["resources.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" }
+  ],
+  "metadata": {
+    "editor": {
+      "tablePositions": {
+        "venues": { "x": 60, "y": 60 },
+        "resources": { "x": 60, "y": 380 },
+        "availability_rules": { "x": 480, "y": 60 },
+        "customers": { "x": 480, "y": 380 },
+        "reservations": { "x": 920, "y": 220 },
+        "payments": { "x": 1340, "y": 60 },
+        "blocked_slots": { "x": 1340, "y": 380 }
+      }
+    }
+  }
+}

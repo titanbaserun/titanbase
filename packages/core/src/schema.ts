@@ -58,7 +58,7 @@ export const titanRelationSchema = z.object({
 
 export const titanSchemaSchema = z.object({
   titanVersion: z.literal(TITAN_VERSION),
-  project: z.object({ id, name: id }),
+  project: z.object({ id, name: id, description: optionalText }),
   dialect: z.enum(["postgres", "mysql", "sqlite", "generic"]),
   tables: z.array(titanTableSchema),
   enums: z.array(titanEnumSchema),

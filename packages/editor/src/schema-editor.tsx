@@ -1,18 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow, useReactFlow, ReactFlowProvider, SelectionMode, type Edge, type Node } from "@xyflow/react";
-import { ArrowArcLeft, ArrowArcRight, BracketsCurly, CheckCircle, Copy, Database, DownloadSimple, FloppyDisk, FolderOpen, Link, MagnifyingGlass, Moon, Plus, Sun, Table as TableIcon, TreeStructure, WarningCircle } from "@phosphor-icons/react";
-import { diagnoseSchema, normalizeSchema, type TitanDiagnostic, type TitanEnum, type TitanIndex, type TitanRelation, type TitanSchema, type TitanTable } from "@titanbase/core";
+import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow, useReactFlow, ReactFlowProvider, type Edge, type Node, type NodeChange } from "@xyflow/react";
+import { ArrowArcLeft, ArrowArcRight, BookOpen, BracketsCurly, CaretDoubleRight, CheckCircle, Database, DownloadSimple, FilePlus, FloppyDisk, FolderOpen, Gear, Link, MagnifyingGlass, Moon, Plus, PushPin, PushPinSlash, SidebarSimple, Sun, Table as TableIcon, TreeStructure, WarningCircle } from "@phosphor-icons/react";
+import { createEmptySchema, diagnoseSchema, normalizeSchema, type TitanDiagnostic, type TitanEnum, type TitanIndex, type TitanRelation, type TitanSchema, type TitanTable } from "@titanbase/core";
 import { exportPostgres } from "@titanbase/export-postgres";
-import { Badge, Button, Input, Textarea } from "@titanbase/ui";
+import { Badge, Button, Input } from "@titanbase/ui";
+import { ExportModal } from "./export-modal";
+import { createExportFilename, type ExportTarget } from "./export-utils";
 import { SchemaInspector } from "./inspectors";
+import { LeaveDialog } from "./leave-dialog";
+import { ProjectOverview } from "./project-overview";
+import { ReplaceDialog } from "./replace-dialog";
 import { applySchemaMutation, selectionForDiagnostic, useSchemaHistory, type EditorSelection, type MultiSelection } from "./schema-state";
+import { createRelationLabel, getSchemaStatistics, isForeignKeyColumn, isIndexedColumn } from "./schema-visuals";
 import { TableNodeView, type TableNode } from "./table-node";
+import type { SchemaTemplate } from "./template-types";
+import { WelcomeScreen } from "./welcome-screen";
+import { SettingsDialog } from "./settings-dialog";
+import { fallbackEditorSettings, type EditorAppSettings, type ResolvedTheme } from "./settings";
 
 const nodeTypes = { tableNode: TableNodeView };
 const STORAGE_KEY = "titanbase:schema";
-const THEME_KEY = "titanbase:theme";
 
 const nextId = (prefix: string) => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? Date.now()}`;
 
@@ -28,6 +37,12 @@ function diagnosticGroup(issue: TitanDiagnostic, schema: TitanSchema) {
   return "Schema";
 }
 
+function inspectorContextTitle(selection: EditorSelection) {
+  if (!selection) return "Project Overview";
+  const titles = { table: "Table", column: "Column", relation: "Relation", enum: "Enum", index: "Index" } as const;
+  return titles[selection.kind];
+}
+
 function autoLayout(schema: TitanSchema): Record<string, { x: number; y: number }> {
   const cols = Math.max(3, Math.ceil(Math.sqrt(schema.tables.length)));
   const gapX = 380;
@@ -40,56 +55,84 @@ function autoLayout(schema: TitanSchema): Record<string, { x: number; y: number 
   return positions;
 }
 
-// ---------------------------------------------------------------------------
-// SchemaEditorProps — public API for embedding the editor.
-//
-// For local use: pass `initialSchema` only (localStorage save/load built-in).
-// For cloud use: pass `onSave` to intercept saves, `onSchemaChange` for
-// real-time sync. The editor remains the single source of truth for the
-// current schema state; cloud layers should not mutate it externally.
-// ---------------------------------------------------------------------------
-
 export interface SchemaEditorProps {
-  /** Initial schema to load into the editor. */
   initialSchema: TitanSchema;
-  /** Called when user triggers save (Ctrl+S or Save button). If provided, replaces localStorage save. */
-  onSave?: (schema: TitanSchema) => void | Promise<void>;
-  /** Called on every schema change (debounce externally if needed). */
-  onSchemaChange?: (schema: TitanSchema) => void;
-  /** If true, hides the local save/load buttons (for cloud-managed mode). */
-  cloudMode?: boolean;
+  templates?: SchemaTemplate[];
+  settings?: EditorAppSettings;
+  resolvedTheme?: ResolvedTheme;
+  onSettingsChange?: (settings: EditorAppSettings) => void;
+  onResetSettings?: () => void;
 }
 
-function SchemaEditorInner({ initialSchema, onSave, onSchemaChange, cloudMode }: SchemaEditorProps) {
-  const history = useSchemaHistory(normalizeSchema(initialSchema));
+function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackEditorSettings, resolvedTheme = "light", onSettingsChange, onResetSettings }: SchemaEditorProps) {
+  const normalizedInitial = useMemo(() => normalizeSchema(initialSchema), [initialSchema]);
+  const history = useSchemaHistory(normalizedInitial);
   const { schema } = history;
-  const [selection, setSelection] = useState<EditorSelection>(() => schema.tables[1] ? { kind: "table", tableId: schema.tables[1].id } : schema.tables[0] ? { kind: "table", tableId: schema.tables[0].id } : null);
+  const [selection, setSelection] = useState<EditorSelection>(null);
   const [multiSelection, setMultiSelection] = useState<MultiSelection>(emptyMultiSelection);
   const [preview, setPreview] = useState<"json" | "sql" | null>(null);
-  const [notice, setNotice] = useState("Example loaded");
+  const [notice, setNotice] = useState("Saved");
+  const [filename, setFilename] = useState(schema.tables.length ? `${schema.project.id}.titan.json` : "untitled.titan.json");
+  const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(schema));
+  const [showWelcome, setShowWelcome] = useState(schema.tables.length === 0);
+  const [welcomeTemplates, setWelcomeTemplates] = useState(false);
+  const [fitRevision, setFitRevision] = useState(0);
+  const [validationOpen, setValidationOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem(THEME_KEY) === "dark";
-  });
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [replaceOpen, setReplaceOpen] = useState(false);
+  const [inspectorPreview, setInspectorPreview] = useState(false);
+  const [narrowInspector, setNarrowInspector] = useState(false);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const dragStart = useRef<TitanSchema | null>(null);
+  const replaceAction = useRef<(() => void) | null>(null);
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
   const reactFlow = useReactFlow();
+  const darkMode = resolvedTheme === "dark";
+  const inspectorVisible = settings.inspectorOpen || inspectorPreview;
+  const inspectorPinnedOpen = settings.inspectorPinned && settings.inspectorOpen && !narrowInspector;
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
-    localStorage.setItem(THEME_KEY, darkMode ? "dark" : "light");
-  }, [darkMode]);
+    const media = window.matchMedia("(max-width: 900px)");
+    const update = () => setNarrowInspector(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
-  // Notify parent of schema changes (for cloud sync)
   useEffect(() => {
-    onSchemaChange?.(schema);
-  }, [schema, onSchemaChange]);
+    const timeout = window.setTimeout(() => window.dispatchEvent(new Event("resize")), 190);
+    return () => window.clearTimeout(timeout);
+  }, [inspectorPinnedOpen]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", resolvedTheme);
+  }, [resolvedTheme]);
+
+  const currentSnapshot = useMemo(() => JSON.stringify(schema), [schema]);
+  const isDirty = savedSnapshot !== currentSnapshot;
+  const saveStatus = isDirty ? "Unsaved changes" : notice === "Saved locally" ? "Saved locally" : "Saved";
+
+  useEffect(() => {
+    if (!settings.autosave || !isDirty || showWelcome) return;
+    const timeout = window.setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, currentSnapshot);
+      setSavedSnapshot(currentSnapshot);
+      setNotice("Saved locally");
+    }, 700);
+    return () => window.clearTimeout(timeout);
+  }, [currentSnapshot, isDirty, settings.autosave, showWelcome]);
+
+  useEffect(() => {
+    if (!settings.autoFitViewOnLoad || showWelcome || !schema.tables.length) return;
+    const timeout = window.setTimeout(() => reactFlow.fitView({ padding: 0.2, minZoom: 0.65, maxZoom: 1.05, duration: 320 }), 80);
+    return () => window.clearTimeout(timeout);
+  }, [fitRevision, reactFlow, schema.tables.length, settings.autoFitViewOnLoad, showWelcome]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -119,7 +162,15 @@ function SchemaEditorInner({ initialSchema, onSave, onSchemaChange, cloudMode }:
       }
       // Escape: close search or deselect
       if (event.key === "Escape") {
-        if (searchOpen) { setSearchOpen(false); setSearchQuery(""); }
+        if (replaceOpen) { setReplaceOpen(false); replaceAction.current = null; }
+        else if (leaveOpen) setLeaveOpen(false);
+        else if (settingsOpen) setSettingsOpen(false);
+        else if (preview) setPreview(null);
+        else if (inspectorVisible && !inspectorPinnedOpen) {
+          setInspectorPreview(false);
+          onSettingsChange?.({ ...settings, inspectorOpen: false });
+        }
+        else if (searchOpen) { setSearchOpen(false); setSearchQuery(""); }
         else { setSelection(null); setMultiSelection(emptyMultiSelection); }
         return;
       }
@@ -168,18 +219,15 @@ function SchemaEditorInner({ initialSchema, onSave, onSchemaChange, cloudMode }:
       // Ctrl/Cmd+S: save
       if (meta && event.key === "s" && !isInput) {
         event.preventDefault();
-        if (onSave) {
-          onSave(schemaRef.current);
-          setNotice("Saved");
-        } else {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(schemaRef.current));
-          setNotice("Saved locally");
-        }
+        const serialized = JSON.stringify(schemaRef.current);
+        localStorage.setItem(STORAGE_KEY, serialized);
+        setSavedSnapshot(serialized);
+        setNotice("Saved locally");
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [history, selection, multiSelection, searchOpen]);
+  }, [history, selection, multiSelection, preview, searchOpen, leaveOpen, replaceOpen, settingsOpen, inspectorVisible, inspectorPinnedOpen, settings, onSettingsChange]);
 
   const diagnostics = useMemo(() => diagnoseSchema(schema), [schema]);
   const sqlResult = useMemo(() => exportPostgres(schema), [schema]);
@@ -205,8 +253,14 @@ function SchemaEditorInner({ initialSchema, onSave, onSchemaChange, cloudMode }:
   const nodes = useMemo<TableNode[]>(() => schema.tables.map((table, index) => ({
     id: table.id,
     type: "tableNode",
-    position: schema.metadata.editor.tablePositions[table.id] ?? { x: 80 + index * 320, y: 100 + index * 90 },
-    data: { table, onSelectColumn: selectColumn, ...(selectedTableId === table.id && selectedColumnId ? { selectedColumnId } : {}) },
+    position: schema.metadata.editor.tablePositions[table.id] ?? { x: 80 + index * 340, y: 100 + index * 90 },
+    data: {
+      table,
+      foreignKeyColumnIds: new Set(table.columns.filter((column) => isForeignKeyColumn(schema, table.id, column.id)).map((column) => column.id)),
+      indexedColumnIds: new Set(table.columns.filter((column) => isIndexedColumn(table, column.id)).map((column) => column.id)),
+      onSelectColumn: selectColumn,
+      ...(selectedTableId === table.id && selectedColumnId ? { selectedColumnId } : {}),
+    },
     selected: table.id === selectedTableId || multiSelection.tableIds.has(table.id),
     hidden: filteredTableIds !== null && !filteredTableIds.has(table.id),
   })), [schema, selectColumn, selectedColumnId, selectedTableId, multiSelection.tableIds, filteredTableIds]);
@@ -218,15 +272,17 @@ function SchemaEditorInner({ initialSchema, onSave, onSchemaChange, cloudMode }:
       id: relation.id,
       source: relation.from.table,
       target: relation.to.table,
-      label: relation.name.replaceAll("_", " "),
+      label: createRelationLabel(schema, relation),
       type: "smoothstep",
-      animated: isHovered,
+      animated: false,
       selected: isSelected,
-      style: { stroke: isSelected || isHovered ? "#078b37" : "#0bad45", strokeWidth: isSelected ? 2.75 : isHovered ? 2.25 : 1.75 },
-      labelStyle: { fill: "#56615b", fontSize: 11, fontWeight: 600 },
-      labelBgStyle: { fill: darkMode ? "#1a2b1f" : "#f8faf8", fillOpacity: 0.94 },
+      style: { stroke: isSelected || isHovered ? "var(--relation-selected)" : "var(--relation)", strokeWidth: isSelected ? 2.2 : isHovered ? 1.65 : 1.15, opacity: isSelected || isHovered ? 1 : 0.66 },
+      labelStyle: { fill: "var(--muted-foreground)", fontSize: 10, fontWeight: 650 },
+      labelBgStyle: { fill: "var(--panel)", fillOpacity: 0.97 },
+      labelBgPadding: [7, 5] as [number, number],
+      labelBgBorderRadius: 5,
     };
-  }), [schema.relations, selectedRelationId, multiSelection.relationIds, hoveredEdgeId, darkMode]);
+  }), [schema, selectedRelationId, multiSelection.relationIds, hoveredEdgeId]);
 
   const addTable = () => {
     const id = nextId("table");
@@ -235,6 +291,7 @@ function SchemaEditorInner({ initialSchema, onSave, onSchemaChange, cloudMode }:
     history.commit({ type: "table.add", table, position: { x: 140 + count * 38, y: 110 + count * 32 } });
     setSelection({ kind: "table", tableId: id });
     setNotice(`${table.name} added`);
+    if (!schema.tables.length) setFitRevision((revision) => revision + 1);
   };
 
   const createColumn = (table: TitanTable) => {
@@ -274,26 +331,60 @@ function SchemaEditorInner({ initialSchema, onSave, onSchemaChange, cloudMode }:
     setNotice("Enum added");
   };
 
+  const requestReplace = (action: () => void) => {
+    if (showWelcome || !isDirty) return action();
+    replaceAction.current = action;
+    setReplaceOpen(true);
+  };
+
+  const replaceProject = (nextSchema: TitanSchema, nextFilename: string, nextNotice: string) => {
+    const normalized = normalizeSchema(nextSchema);
+    history.reset(normalized);
+    schemaRef.current = normalized;
+    setSelection(null);
+    setMultiSelection(emptyMultiSelection);
+    setFilename(nextFilename);
+    setSavedSnapshot(JSON.stringify(normalized));
+    setNotice(nextNotice);
+    setShowWelcome(false);
+    setWelcomeTemplates(false);
+    setPreview(null);
+    setValidationOpen(false);
+    setFitRevision((revision) => revision + 1);
+  };
+
+  const startBlank = () => {
+    requestReplace(() => replaceProject(createEmptySchema(), "untitled.titan.json", "Saved"));
+  };
+
+  const startTemplate = (template: SchemaTemplate) => {
+    requestReplace(() => replaceProject(template.schema, `${template.id}.titan.json`, "Saved"));
+  };
+
+  const showTemplatePicker = () => {
+    requestReplace(() => { setWelcomeTemplates(true); setShowWelcome(true); });
+  };
+
+  const requestOpenJson = () => {
+    requestReplace(() => fileInput.current?.click());
+  };
+
   const saveLocal = () => {
-    if (onSave) {
-      onSave(schema);
-      setNotice("Saved");
-    } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(schema));
-      setNotice("Saved locally");
-    }
+    const serialized = JSON.stringify(schema);
+    localStorage.setItem(STORAGE_KEY, serialized);
+    setSavedSnapshot(serialized);
+    setNotice("Saved locally");
   };
 
   const loadLocal = () => {
-    if (cloudMode) return;
     const value = localStorage.getItem(STORAGE_KEY);
     if (!value) return setNotice("No local save found");
-    try {
-      const loaded = normalizeSchema(JSON.parse(value));
-      history.reset(loaded);
-      setSelection(loaded.tables[0] ? { kind: "table", tableId: loaded.tables[0].id } : null);
-      setNotice("Local schema loaded");
-    } catch { setNotice("Local save is invalid"); }
+    requestReplace(() => {
+      try {
+        const loaded = normalizeSchema(JSON.parse(value));
+        replaceProject(loaded, `${loaded.project.id}.titan.json`, "Saved locally");
+      } catch { setNotice("Local save is invalid"); }
+    });
   };
 
   const importJson = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -301,9 +392,7 @@ function SchemaEditorInner({ initialSchema, onSave, onSchemaChange, cloudMode }:
     if (!file) return;
     try {
       const loaded = normalizeSchema(JSON.parse(await file.text()));
-      history.reset(loaded);
-      setSelection(loaded.tables[0] ? { kind: "table", tableId: loaded.tables[0].id } : null);
-      setNotice(`${file.name} loaded`);
+      replaceProject(loaded, file.name, "Saved");
     } catch { setNotice("Could not load schema"); }
     event.target.value = "";
   };
@@ -313,14 +402,78 @@ function SchemaEditorInner({ initialSchema, onSave, onSchemaChange, cloudMode }:
     setNotice(`${preview === "sql" ? "SQL" : "JSON"} copied`);
   };
 
-  const download = () => {
-    const isSql = preview === "sql";
-    const blob = new Blob([previewContent], { type: isSql ? "text/sql" : "application/json" });
+  const downloadContent = (target: ExportTarget, content: string) => {
+    const isSql = target === "sql";
+    const blob = new Blob([content], { type: isSql ? "text/sql" : "application/json" });
     const anchor = document.createElement("a");
     anchor.href = URL.createObjectURL(blob);
-    anchor.download = `${schema.project.id}.${isSql ? "sql" : "titan.json"}`;
+    anchor.download = createExportFilename(schema.project.name, target);
     anchor.click();
     URL.revokeObjectURL(anchor.href);
+    setSavedSnapshot(JSON.stringify(schema));
+    setNotice("Saved");
+  };
+
+  const download = () => downloadContent(preview ?? "json", previewContent);
+
+  const returnToWelcome = () => {
+    const empty = normalizeSchema(createEmptySchema());
+    history.reset(empty);
+    schemaRef.current = empty;
+    setSavedSnapshot(JSON.stringify(empty));
+    setFilename("untitled.titan.json");
+    setSelection(null);
+    setMultiSelection(emptyMultiSelection);
+    setPreview(null);
+    setSettingsOpen(false);
+    setLeaveOpen(false);
+    setWelcomeTemplates(false);
+    setShowWelcome(true);
+    setNotice("Saved");
+  };
+
+  const requestLogoNavigation = () => {
+    if (isDirty) setLeaveOpen(true);
+    else returnToWelcome();
+  };
+
+  const saveAndLeave = () => {
+    const content = JSON.stringify(schema, null, 2);
+    downloadContent("json", content);
+    returnToWelcome();
+  };
+
+  const clearLocalDraft = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setNotice("Local draft cleared");
+  };
+
+  const toggleTheme = () => onSettingsChange?.({ ...settings, theme: darkMode ? "light" : "dark" });
+
+  const openInspector = () => {
+    setInspectorPreview(false);
+    onSettingsChange?.({ ...settings, inspectorOpen: true });
+  };
+
+  const collapseInspector = () => {
+    setInspectorPreview(false);
+    onSettingsChange?.({ ...settings, inspectorOpen: false });
+  };
+
+  const toggleInspectorPin = () => {
+    if (settings.inspectorPinned) {
+      onSettingsChange?.({ ...settings, inspectorPinned: false, inspectorOpen: false });
+      setInspectorPreview(true);
+      return;
+    }
+    setInspectorPreview(false);
+    onSettingsChange?.({ ...settings, inspectorPinned: true, inspectorOpen: true });
+  };
+
+  const closeInspectorOverlay = () => {
+    if (settings.inspectorPinned) return;
+    setInspectorPreview(false);
+    if (settings.inspectorOpen) onSettingsChange?.({ ...settings, inspectorOpen: false });
   };
 
   const runAutoLayout = () => {
@@ -334,11 +487,18 @@ function SchemaEditorInner({ initialSchema, onSave, onSchemaChange, cloudMode }:
     setNotice("Auto-layout applied");
   };
 
-  const onNodeDrag = (_: unknown, node: Node) => {
-    const next = applySchemaMutation(schemaRef.current, { type: "position.update", tableId: node.id, position: node.position });
+  const onNodesChange = useCallback((changes: NodeChange<TableNode>[]) => {
+    let next = schemaRef.current;
+    let moved = false;
+    for (const change of changes) {
+      if (change.type !== "position" || !change.position) continue;
+      next = applySchemaMutation(next, { type: "position.update", tableId: change.id, position: change.position });
+      moved = true;
+    }
+    if (!moved) return;
     schemaRef.current = next;
     history.replace(next);
-  };
+  }, [history]);
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     const event = _ as React.MouseEvent;
@@ -385,22 +545,22 @@ function SchemaEditorInner({ initialSchema, onSave, onSchemaChange, cloudMode }:
     return { name: rel.name, from: `${fromTable?.name ?? "?"}.${fromCols.join(", ")}`, to: `${toTable?.name ?? "?"}.${toCols.join(", ")}`, cardinality: rel.cardinality };
   }, [hoveredEdgeId, schema]);
 
-  return <main className={`editor-shell ${darkMode ? "dark" : ""}`} data-theme={darkMode ? "dark" : "light"}>
+  const statistics = useMemo(() => getSchemaStatistics(schema), [schema]);
+
+  if (showWelcome) return <>
+    <WelcomeScreen templates={templates} initialShowTemplates={welcomeTemplates} onBlank={startBlank} onOpen={requestOpenJson} onTemplate={startTemplate} />
+    <input ref={fileInput} className="sr-only" type="file" accept=".json,.titan.json" onChange={importJson} />
+  </>;
+
+  return <main className={`editor-shell ${darkMode ? "dark" : ""} ${inspectorPinnedOpen ? "editor-shell--inspector-pinned" : ""}`} data-theme={resolvedTheme}>
     <header className="editor-toolbar">
-      <div className="brand-lockup"><img src="/Titan.svg" alt="Titanbase" /></div>
-      <div className="file-status"><BracketsCurly size={17} /><strong>{schema.project.id}.titan.json</strong><span className="status-dot" />{notice}</div>
+      <button className="brand-lockup" onClick={requestLogoNavigation} title="Return to start screen"><img className="theme-logo theme-logo--light" src="/Titan.svg" alt="Titanbase" /><img className="theme-logo theme-logo--dark" src="/titanbase_light.svg" alt="Titanbase" /></button>
+      <div className="file-status"><BracketsCurly size={17} /><span><strong>{schema.project.name}</strong><small>{filename}</small></span><span className={`status-dot ${isDirty ? "status-dot--dirty" : ""}`} /><em>{saveStatus}</em></div>
       <div className="toolbar-actions">
-        <Button variant="ghost" disabled={!history.canUndo} onClick={history.undo} title="Undo (Ctrl+Z)"><ArrowArcLeft size={18} /><span className="action-label">Undo</span></Button>
-        <Button variant="ghost" disabled={!history.canRedo} onClick={history.redo} title="Redo (Ctrl+Shift+Z)"><ArrowArcRight size={18} /><span className="action-label">Redo</span></Button>
-        <Button variant="ghost" onClick={saveLocal} title="Save locally (Ctrl+S)"><FloppyDisk size={18} /><span className="action-label">Save</span></Button>
-        {!cloudMode && <Button variant="ghost" onClick={loadLocal} title="Load local save"><FolderOpen size={18} /><span className="action-label">Load</span></Button>}
-        <Button variant="ghost" onClick={() => { setSearchOpen(!searchOpen); if (!searchOpen) setTimeout(() => searchInput.current?.focus(), 50); }} title="Search (Ctrl+F)"><MagnifyingGlass size={18} /></Button>
-        <Button variant="ghost" onClick={runAutoLayout} title="Auto-layout tables"><TreeStructure size={18} /></Button>
-        <Button variant="ghost" onClick={() => setDarkMode(!darkMode)} title="Toggle dark mode">{darkMode ? <Sun size={18} /> : <Moon size={18} />}</Button>
-        <Button variant="primary" onClick={addTable}><Plus size={18} /> Table</Button>
-        <Button onClick={createRelation}><Link size={18} /> Relation</Button>
-        <Button onClick={createEnum}><Database size={18} /> Enum</Button>
-        <Button onClick={() => setPreview("json")}><BracketsCurly size={18} /> Export</Button>
+        <div className="toolbar-group"><Button variant="ghost" disabled={!history.canUndo} onClick={history.undo} title="Undo (Ctrl+Z)"><ArrowArcLeft size={18} /><span className="action-label">Undo</span></Button><Button variant="ghost" disabled={!history.canRedo} onClick={history.redo} title="Redo (Ctrl+Shift+Z)"><ArrowArcRight size={18} /><span className="action-label">Redo</span></Button></div>
+        <div className="toolbar-group"><Button variant="ghost" onClick={startBlank} title="New schema"><FilePlus size={18} /><span className="action-label">New</span></Button><Button variant="ghost" onClick={saveLocal} title="Save locally (Ctrl+S)"><FloppyDisk size={18} /><span className="action-label">Save</span></Button><Button variant="ghost" onClick={loadLocal} title="Load local draft"><FolderOpen size={18} /><span className="action-label">Load</span></Button><Button className="export-toolbar-button" onClick={() => setPreview("json")} title="Export and download schema files"><DownloadSimple size={18} /> Export</Button></div>
+        <div className="toolbar-group toolbar-group--add"><Button variant="primary" onClick={addTable}><Plus size={18} /> Table</Button><Button onClick={createRelation}><Link size={18} /> Relation</Button><Button onClick={createEnum}><Database size={18} /> Enum</Button></div>
+        <div className="toolbar-group"><a className="docs-link" href="https://docs.titanbase.run" target="_blank" rel="noreferrer" title="Open Titanbase documentation"><BookOpen size={18} /><span className="action-label">Docs</span></a><Button variant="ghost" onClick={() => { setSearchOpen(!searchOpen); if (!searchOpen) setTimeout(() => searchInput.current?.focus(), 50); }} title="Search (Ctrl+F)"><MagnifyingGlass size={18} /></Button><Button variant="ghost" onClick={runAutoLayout} title="Auto-layout tables"><TreeStructure size={18} /></Button><Button variant="ghost" onClick={() => setSettingsOpen(true)} title="Settings"><Gear size={18} /></Button><Button variant="ghost" onClick={toggleTheme} title="Toggle theme">{darkMode ? <Sun size={18} /> : <Moon size={18} />}</Button></div>
       </div>
       <input ref={fileInput} className="sr-only" type="file" accept=".json,.titan.json" onChange={importJson} />
     </header>
@@ -412,12 +572,12 @@ function SchemaEditorInner({ initialSchema, onSave, onSchemaChange, cloudMode }:
       {filteredTableIds !== null && <span className="search-count">{filteredTableIds.size} of {schema.tables.length} tables</span>}
     </div>}
 
-    <div className="editor-workspace">
+    <div className={`editor-workspace ${inspectorPinnedOpen ? "editor-workspace--inspector-pinned" : ""}`}>
       <section className="canvas" aria-label="Schema canvas">
-        <ReactFlow<TableNode> nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodeClick={onNodeClick} onEdgeClick={onEdgeClick} onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)} onEdgeMouseLeave={() => setHoveredEdgeId(null)} onPaneClick={() => { setSelection(null); setMultiSelection(emptyMultiSelection); setPreview(null); }} onNodeDragStart={() => { dragStart.current = schemaRef.current; }} onNodeDrag={onNodeDrag} onNodeDragStop={() => { if (dragStart.current) history.commitFrom(dragStart.current, schemaRef.current); dragStart.current = null; }} fitView minZoom={0.35} maxZoom={1.8} selectionOnDrag panOnDrag={[1]} selectionMode={SelectionMode.Partial}>
-          <Background variant={BackgroundVariant.Dots} color={darkMode ? "#2d3d32" : "#cfd8d1"} gap={22} size={1.2} />
+        <ReactFlow<TableNode> nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onNodeClick={onNodeClick} onEdgeClick={onEdgeClick} onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)} onEdgeMouseLeave={() => setHoveredEdgeId(null)} onPaneClick={() => { setSelection(null); setMultiSelection(emptyMultiSelection); setPreview(null); }} onNodeDragStart={() => { dragStart.current = schemaRef.current; }} onNodeDragStop={() => { if (dragStart.current) history.commitFrom(dragStart.current, schemaRef.current); dragStart.current = null; }} fitView minZoom={0.35} maxZoom={1.8} selectionOnDrag={false} panOnDrag panOnScroll zoomOnScroll={false} proOptions={{ hideAttribution: true }}>
+          {settings.showGrid ? <Background variant={BackgroundVariant.Dots} color="var(--canvas-grid)" gap={22} size={1.2} /> : null}
           <Controls showInteractive={false} />
-          <MiniMap pannable zoomable nodeColor={(node) => node.id === selectedTableId || multiSelection.tableIds.has(node.id) ? "#0bad45" : darkMode ? "#3a4d3f" : "#b9c4bc"} maskColor={darkMode ? "rgba(20,30,22,.78)" : "rgba(248,250,248,.78)"} />
+          {settings.showMinimap ? <MiniMap pannable zoomable nodeColor={(node) => node.id === selectedTableId || multiSelection.tableIds.has(node.id) ? "var(--primary)" : "var(--minimap-node)"} maskColor="var(--minimap-mask)" /> : null}
         </ReactFlow>
         <Button className="canvas-import" onClick={() => fileInput.current?.click()}><FolderOpen size={17} /> Open JSON</Button>
         {hoveredRelation && <div className="relation-tooltip">
@@ -426,25 +586,24 @@ function SchemaEditorInner({ initialSchema, onSave, onSchemaChange, cloudMode }:
           <small>{hoveredRelation.cardinality}</small>
         </div>}
         {multiSelection.tableIds.size + multiSelection.relationIds.size > 0 && <div className="multi-select-badge">{multiSelection.tableIds.size + multiSelection.relationIds.size} selected — press Delete to remove</div>}
-        {!schema.tables.length ? <div className="canvas-empty"><TableIcon size={34} weight="duotone" /><h2>Start with a table</h2><p>Add your first table or open a `.titan.json` schema.</p><Button variant="primary" onClick={addTable}><Plus size={17} /> Add table</Button></div> : null}
+        {!schema.tables.length ? <div className="canvas-empty"><TableIcon size={34} weight="duotone" /><h2>Start designing your schema</h2><p>Add your first table, start from a template, or open an existing .titan.json file.</p><div><Button variant="primary" onClick={addTable}><Plus size={17} /> Add Table</Button><Button onClick={showTemplatePicker}>Use Template</Button><Button onClick={requestOpenJson}><FolderOpen size={17} /> Open JSON</Button></div><small>Tip: Titanbase saves your schema as a portable .titan.json file.</small></div> : null}
       </section>
 
-      <aside className="inspector">
-        {preview ? <div className="preview-panel">
-          <div className="inspector-heading"><div><span>Export preview</span><h2>{preview === "sql" ? "PostgreSQL SQL" : "Titan JSON"}</h2></div><Button variant="ghost" onClick={() => setPreview(null)}>Close</Button></div>
-          <div className="preview-tabs"><button className={preview === "json" ? "active" : ""} onClick={() => setPreview("json")}>Titan JSON</button><button className={preview === "sql" ? "active" : ""} onClick={() => setPreview("sql")}>PostgreSQL SQL</button></div>
-          {diagnostics.some((d) => d.severity === "error") && <div className="export-validation-warning"><WarningCircle size={16} weight="fill" /> Schema has {diagnostics.filter((d) => d.severity === "error").length} validation error{diagnostics.filter((d) => d.severity === "error").length === 1 ? "" : "s"}. Output may be incomplete.</div>}
-          <Textarea readOnly spellCheck={false} value={previewContent} className="code-preview" />
-          {preview === "sql" && sqlResult.warnings.length ? <div className="export-warnings">{sqlResult.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div> : null}
-          <div className="preview-actions"><Button onClick={copyPreview}><Copy size={18} /> Copy</Button><Button variant="primary" onClick={download}><DownloadSimple size={18} /> Download</Button></div>
-        </div> : <SchemaInspector schema={schema} selection={selection} commit={history.commit} select={(next) => { setSelection(next); setPreview(null); }} createColumn={createColumn} createIndex={createIndex} />}
-      </aside>
+      {!inspectorVisible ? <button className="inspector-handle" aria-label="Open inspector" title="Open inspector" onClick={openInspector} onMouseEnter={() => { if (!settings.inspectorPinned && settings.inspectorHover) setInspectorPreview(true); }}><SidebarSimple size={18} /><span>Inspector</span></button> : null}
+      {inspectorVisible ? <aside className={`inspector ${inspectorPinnedOpen ? "inspector--pinned" : "inspector--overlay"}`} onMouseLeave={closeInspectorOverlay}>
+        <header className="inspector-shell-header"><strong>{inspectorContextTitle(selection)}</strong><div><button aria-label={settings.inspectorPinned ? "Unpin sidebar" : "Pin sidebar"} title={settings.inspectorPinned ? "Unpin sidebar" : "Pin sidebar"} onClick={toggleInspectorPin}>{settings.inspectorPinned ? <PushPinSlash size={16} /> : <PushPin size={16} />}</button><button aria-label="Collapse sidebar" title="Collapse sidebar" onClick={collapseInspector}><CaretDoubleRight size={16} /></button></div></header>
+        <div className="inspector-body">{selection ? <SchemaInspector schema={schema} selection={selection} commit={history.commit} select={setSelection} createColumn={createColumn} createIndex={createIndex} /> : <ProjectOverview schema={schema} filename={filename} diagnostics={diagnostics} commit={history.commit} onAddTable={addTable} onAddRelation={createRelation} onAddEnum={createEnum} onExport={setPreview} onOpen={requestOpenJson} onTemplates={showTemplatePicker} />}</div>
+      </aside> : null}
     </div>
 
-    <footer className="diagnostics-panel">
-      <div className="diagnostics-header"><div className="diagnostic-summary">{diagnostics.some((issue) => issue.severity === "error") ? <WarningCircle size={21} weight="fill" /> : <CheckCircle size={21} weight="fill" />}<strong>{diagnostics.length ? `${diagnostics.length} validation issue${diagnostics.length === 1 ? "" : "s"}` : "Schema valid"}</strong><span>{diagnostics.length ? "Review issues by schema object" : "No validation issues found"}</span></div><div className="schema-stats">{schema.tables.length} tables <i /> {schema.tables.reduce((sum, table) => sum + table.columns.length, 0)} columns <i /> {schema.relations.length} relations <i /> {schema.enums.length} enums</div></div>
-      {diagnostics.length ? <div className="diagnostic-groups">{groupedDiagnostics.map(([group, issues]) => <section key={group}><h3>{group}<Badge tone={issues?.some((issue) => issue.severity === "error") ? "amber" : "neutral"}>{issues?.length ?? 0}</Badge></h3>{issues?.map((issue) => <button key={`${issue.code}-${issue.path}`} onClick={() => { const next = selectionForDiagnostic(issue.path, schema); if (next) { setSelection(next); setPreview(null); } }}><Badge tone={issue.severity === "error" ? "amber" : "neutral"}>{issue.severity}</Badge><span><strong>{issue.message}</strong><code>{issue.path}</code></span></button>)}</section>)}</div> : <div className="validation-empty"><CheckCircle size={18} /> Everything is structurally valid. Keep designing.</div>}
+    <footer className={`diagnostics-panel ${validationOpen ? "diagnostics-panel--open" : ""}`}>
+      <button className="diagnostics-header" onClick={() => diagnostics.length && setValidationOpen((open) => !open)}><div className="diagnostic-summary">{diagnostics.some((issue) => issue.severity === "error") ? <WarningCircle size={19} weight="fill" /> : <CheckCircle size={19} weight="fill" />}<strong>{diagnostics.some((issue) => issue.severity === "error") ? "Schema has errors" : "Schema valid"}</strong><span>{diagnostics.length} issue{diagnostics.length === 1 ? "" : "s"}</span><span>{saveStatus}</span></div><div className="schema-stats">{statistics.tables} tables <i /> {statistics.columns} columns <i /> {statistics.relations} relations <i /> {statistics.indexes} indexes <i /> {statistics.enums} enums</div></button>
+      {validationOpen && diagnostics.length ? <div className="diagnostic-groups">{groupedDiagnostics.map(([group, issues]) => <section key={group}><h3>{group}<Badge tone={issues?.some((issue) => issue.severity === "error") ? "amber" : "neutral"}>{issues?.length ?? 0}</Badge></h3>{issues?.map((issue) => <button key={`${issue.code}-${issue.path}`} onClick={() => { const next = selectionForDiagnostic(issue.path, schema); if (next) { setSelection(next); setPreview(null); } }}><Badge tone={issue.severity === "error" ? "amber" : "neutral"}>{issue.severity}</Badge><span><strong>{issue.message}</strong><code>{issue.path}</code></span></button>)}</section>)}</div> : null}
     </footer>
+    {preview ? <ExportModal tab={preview} content={previewContent} diagnostics={diagnostics} warnings={sqlResult.warnings} onTab={setPreview} onClose={() => setPreview(null)} onCopy={copyPreview} onDownload={download} /> : null}
+    {settingsOpen && onSettingsChange ? <SettingsDialog settings={settings} onChange={onSettingsChange} onClearDraft={clearLocalDraft} onReset={() => { onResetSettings?.(); setNotice("Settings reset"); }} onClose={() => setSettingsOpen(false)} /> : null}
+    {leaveOpen ? <LeaveDialog onSaveAndLeave={saveAndLeave} onLeave={returnToWelcome} onCancel={() => setLeaveOpen(false)} /> : null}
+    {replaceOpen ? <ReplaceDialog onReplace={() => { const action = replaceAction.current; replaceAction.current = null; setReplaceOpen(false); action?.(); }} onCancel={() => { replaceAction.current = null; setReplaceOpen(false); }} /> : null}
   </main>;
 }
 

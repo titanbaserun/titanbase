@@ -1,0 +1,146 @@
+{
+  "titanVersion": "1.0",
+  "project": { "id": "ai-model-registry", "name": "AI Model Registry" },
+  "dialect": "postgres",
+  "tables": [
+    {
+      "id": "teams", "name": "teams", "description": "ML teams that own models.",
+      "columns": [
+        { "id": "teams.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "teams.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "teams.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "teams.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "teams.slug_idx", "name": "teams_slug_idx", "table": "teams", "columns": ["teams.slug"], "unique": true }
+      ]
+    },
+    {
+      "id": "models", "name": "models", "description": "Registered ML models.",
+      "columns": [
+        { "id": "models.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "models.team_id", "name": "team_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "models.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "models.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "models.description", "name": "description", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "models.task_type", "name": "task_type", "type": "task_type", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "models.framework", "name": "framework", "type": "framework", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "models.is_public", "name": "is_public", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "false" },
+        { "id": "models.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "models.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "models.slug_idx", "name": "models_slug_idx", "table": "models", "columns": ["models.slug"], "unique": true },
+        { "id": "models.team_idx", "name": "models_team_idx", "table": "models", "columns": ["models.team_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "model_versions", "name": "model_versions", "description": "Versioned snapshots of a model.",
+      "columns": [
+        { "id": "model_versions.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "model_versions.model_id", "name": "model_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "model_versions.version", "name": "version", "type": "text", "nullable": false, "primaryKey": false, "unique": false, "description": "Semantic version string." },
+        { "id": "model_versions.artifact_url", "name": "artifact_url", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "model_versions.artifact_size_bytes", "name": "artifact_size_bytes", "type": "bigint", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "model_versions.checksum_sha256", "name": "checksum_sha256", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "model_versions.status", "name": "status", "type": "version_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'draft'" },
+        { "id": "model_versions.release_notes", "name": "release_notes", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "model_versions.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "model_versions.model_version_idx", "name": "model_versions_model_version_idx", "table": "model_versions", "columns": ["model_versions.model_id", "model_versions.version"], "unique": true }
+      ]
+    },
+    {
+      "id": "experiments", "name": "experiments", "description": "Training runs and experiments.",
+      "columns": [
+        { "id": "experiments.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "experiments.model_id", "name": "model_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "experiments.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "experiments.hyperparameters", "name": "hyperparameters", "type": "jsonb", "nullable": false, "primaryKey": false, "unique": false, "default": "'{}'" },
+        { "id": "experiments.metrics", "name": "metrics", "type": "jsonb", "nullable": false, "primaryKey": false, "unique": false, "default": "'{}'" },
+        { "id": "experiments.dataset_ref", "name": "dataset_ref", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "experiments.status", "name": "status", "type": "experiment_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'running'" },
+        { "id": "experiments.started_at", "name": "started_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "experiments.finished_at", "name": "finished_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false }
+      ],
+      "indexes": [
+        { "id": "experiments.model_idx", "name": "experiments_model_idx", "table": "experiments", "columns": ["experiments.model_id"], "unique": false },
+        { "id": "experiments.status_idx", "name": "experiments_status_idx", "table": "experiments", "columns": ["experiments.status"], "unique": false }
+      ]
+    },
+    {
+      "id": "deployments", "name": "deployments", "description": "Model version deployments to serving infrastructure.",
+      "columns": [
+        { "id": "deployments.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "deployments.model_version_id", "name": "model_version_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "deployments.environment", "name": "environment", "type": "deploy_environment", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "deployments.endpoint_url", "name": "endpoint_url", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "deployments.replicas", "name": "replicas", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "1" },
+        { "id": "deployments.status", "name": "status", "type": "deployment_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'pending'" },
+        { "id": "deployments.deployed_at", "name": "deployed_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "deployments.retired_at", "name": "retired_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false }
+      ],
+      "indexes": [
+        { "id": "deployments.version_env_idx", "name": "deployments_version_env_idx", "table": "deployments", "columns": ["deployments.model_version_id", "deployments.environment"], "unique": false },
+        { "id": "deployments.status_idx", "name": "deployments_status_idx", "table": "deployments", "columns": ["deployments.status"], "unique": false }
+      ]
+    },
+    {
+      "id": "model_tags", "name": "model_tags", "description": "Labels for model categorization.",
+      "columns": [
+        { "id": "model_tags.model_id", "name": "model_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "model_tags.tag", "name": "tag", "type": "text", "nullable": false, "primaryKey": true, "unique": false }
+      ],
+      "indexes": [
+        { "id": "model_tags.tag_idx", "name": "model_tags_tag_idx", "table": "model_tags", "columns": ["model_tags.tag"], "unique": false }
+      ]
+    },
+    {
+      "id": "access_tokens", "name": "access_tokens", "description": "API tokens for programmatic model access.",
+      "columns": [
+        { "id": "access_tokens.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "access_tokens.team_id", "name": "team_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "access_tokens.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "access_tokens.token_hash", "name": "token_hash", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "access_tokens.scopes", "name": "scopes", "type": "text", "nullable": false, "primaryKey": false, "unique": false, "default": "'read'" },
+        { "id": "access_tokens.expires_at", "name": "expires_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "access_tokens.last_used_at", "name": "last_used_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "access_tokens.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "access_tokens.token_hash_idx", "name": "access_tokens_token_hash_idx", "table": "access_tokens", "columns": ["access_tokens.token_hash"], "unique": true },
+        { "id": "access_tokens.team_idx", "name": "access_tokens_team_idx", "table": "access_tokens", "columns": ["access_tokens.team_id"], "unique": false }
+      ]
+    }
+  ],
+  "enums": [
+    { "id": "task_type", "name": "task_type", "values": ["classification", "regression", "generation", "embedding", "detection", "segmentation", "translation", "summarization"], "description": "ML task categories." },
+    { "id": "framework", "name": "framework", "values": ["pytorch", "tensorflow", "onnx", "jax", "scikit-learn", "custom"], "description": "ML framework used for training." },
+    { "id": "version_status", "name": "version_status", "values": ["draft", "staging", "released", "deprecated"], "description": "Model version lifecycle." },
+    { "id": "experiment_status", "name": "experiment_status", "values": ["running", "completed", "failed", "cancelled"], "description": "Experiment execution states." },
+    { "id": "deploy_environment", "name": "deploy_environment", "values": ["development", "staging", "production"], "description": "Target deployment environments." },
+    { "id": "deployment_status", "name": "deployment_status", "values": ["pending", "deploying", "active", "failed", "retired"], "description": "Deployment lifecycle states." }
+  ],
+  "relations": [
+    { "id": "models_team", "name": "models_team", "from": { "table": "models", "columns": ["models.team_id"] }, "to": { "table": "teams", "columns": ["teams.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "model_versions_model", "name": "model_versions_model", "from": { "table": "model_versions", "columns": ["model_versions.model_id"] }, "to": { "table": "models", "columns": ["models.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "experiments_model", "name": "experiments_model", "from": { "table": "experiments", "columns": ["experiments.model_id"] }, "to": { "table": "models", "columns": ["models.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "deployments_version", "name": "deployments_version", "from": { "table": "deployments", "columns": ["deployments.model_version_id"] }, "to": { "table": "model_versions", "columns": ["model_versions.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "model_tags_model", "name": "model_tags_model", "from": { "table": "model_tags", "columns": ["model_tags.model_id"] }, "to": { "table": "models", "columns": ["models.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "access_tokens_team", "name": "access_tokens_team", "from": { "table": "access_tokens", "columns": ["access_tokens.team_id"] }, "to": { "table": "teams", "columns": ["teams.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" }
+  ],
+  "metadata": {
+    "editor": {
+      "tablePositions": {
+        "teams": { "x": 60, "y": 60 },
+        "models": { "x": 60, "y": 340 },
+        "model_versions": { "x": 480, "y": 60 },
+        "experiments": { "x": 480, "y": 420 },
+        "deployments": { "x": 920, "y": 60 },
+        "model_tags": { "x": 920, "y": 380 },
+        "access_tokens": { "x": 1340, "y": 200 }
+      }
+    }
+  }
+}

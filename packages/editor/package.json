@@ -1,6 +1,6 @@
 {
   "name": "@titanbase/editor",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Visual database schema editor — React component for designing tables, relations, and indexes.",
   "license": "Apache-2.0",
   "author": "Titanbase Contributors",
