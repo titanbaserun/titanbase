@@ -1,0 +1,31 @@
+name: Exporter Request
+description: Request a new export format (MySQL, Prisma, Drizzle, DBML, etc.)
+labels: ["exporter"]
+body:
+  - type: input
+    id: format
+    attributes:
+      label: Export format
+      placeholder: "e.g. MySQL, Prisma, Drizzle, DBML, Mermaid"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What should the exporter generate? Any specific requirements?
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example output
+      description: Paste an example of what the generated output should look like for a simple schema (1-2 tables).
+    validations:
+      required: false
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: Contribution
+      options:
+        - label: I'm willing to implement this exporter

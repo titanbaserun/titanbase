@@ -115,6 +115,14 @@ examples/            Sample schemas (blog, ecommerce, saas, messaging, PM)
 
 **Principle:** `@titanbase/core` is the schema standard. Everything else consumes it. The editor is a pure React component with no server dependencies — cloud features are added externally via props, never baked in.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, branch naming, and how to add exporters or examples.
+
+## Security
+
+See [SECURITY.md](SECURITY.md). Do not open public issues for vulnerabilities.
+
 ## License
 
 Apache-2.0
