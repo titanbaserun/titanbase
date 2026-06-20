@@ -1,0 +1,150 @@
+{
+  "titanVersion": "1.0",
+  "project": { "id": "project-management", "name": "Project Tracker" },
+  "dialect": "postgres",
+  "tables": [
+    {
+      "id": "organizations", "name": "organizations", "description": "Top-level workspace for teams.",
+      "columns": [
+        { "id": "organizations.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "organizations.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "organizations.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "organizations.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [{ "id": "organizations.slug_idx", "name": "organizations_slug_idx", "table": "organizations", "columns": ["organizations.slug"], "unique": true }]
+    },
+    {
+      "id": "users", "name": "users", "description": "Team members who can be assigned to issues.",
+      "columns": [
+        { "id": "users.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "users.org_id", "name": "org_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "users.email", "name": "email", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "users.display_name", "name": "display_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "users.role", "name": "role", "type": "org_role", "nullable": false, "primaryKey": false, "unique": false, "default": "'member'" },
+        { "id": "users.avatar_url", "name": "avatar_url", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "users.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "users.email_idx", "name": "users_email_idx", "table": "users", "columns": ["users.email"], "unique": true },
+        { "id": "users.org_idx", "name": "users_org_idx", "table": "users", "columns": ["users.org_id"], "unique": false }
+      ]
+    },
+    {
+      "id": "projects", "name": "projects", "description": "A project groups related issues together.",
+      "columns": [
+        { "id": "projects.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "projects.org_id", "name": "org_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "projects.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "projects.key", "name": "key", "type": "text", "nullable": false, "primaryKey": false, "unique": false, "description": "Short prefix for issue numbering, e.g. PROJ." },
+        { "id": "projects.description", "name": "description", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "projects.lead_id", "name": "lead_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "projects.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "projects.org_idx", "name": "projects_org_idx", "table": "projects", "columns": ["projects.org_id"], "unique": false },
+        { "id": "projects.key_org_idx", "name": "projects_key_org_idx", "table": "projects", "columns": ["projects.org_id", "projects.key"], "unique": true }
+      ]
+    },
+    {
+      "id": "issues", "name": "issues", "description": "Work items tracked within a project.",
+      "columns": [
+        { "id": "issues.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "issues.project_id", "name": "project_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "issues.number", "name": "number", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "description": "Sequential number within the project." },
+        { "id": "issues.title", "name": "title", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "issues.description", "name": "description", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "issues.status", "name": "status", "type": "issue_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'backlog'" },
+        { "id": "issues.priority", "name": "priority", "type": "issue_priority", "nullable": false, "primaryKey": false, "unique": false, "default": "'medium'" },
+        { "id": "issues.assignee_id", "name": "assignee_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "issues.reporter_id", "name": "reporter_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "issues.parent_id", "name": "parent_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false, "description": "Parent issue for sub-tasks." },
+        { "id": "issues.due_date", "name": "due_date", "type": "date", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "issues.estimate_points", "name": "estimate_points", "type": "integer", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "issues.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
+        { "id": "issues.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "id": "issues.project_idx", "name": "issues_project_idx", "table": "issues", "columns": ["issues.project_id"], "unique": false },
+        { "id": "issues.assignee_idx", "name": "issues_assignee_idx", "table": "issues", "columns": ["issues.assignee_id"], "unique": false },
+        { "id": "issues.status_idx", "name": "issues_status_idx", "table": "issues", "columns": ["issues.status"], "unique": false },
+        { "id": "issues.project_number_idx", "name": "issues_project_number_idx", "table": "issues", "columns": ["issues.project_id", "issues.number"], "unique": true }
+      ]
+    },
+    {
+      "id": "comments", "name": "comments", "description": "Discussion threads on issues.",
+      "columns": [
+        { "id": "comments.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "comments.issue_id", "name": "issue_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "comments.author_id", "name": "author_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "comments.body", "name": "body", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "comments.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [{ "id": "comments.issue_idx", "name": "comments_issue_idx", "table": "comments", "columns": ["comments.issue_id"], "unique": false }]
+    },
+    {
+      "id": "labels", "name": "labels", "description": "Custom labels for categorizing issues.",
+      "columns": [
+        { "id": "labels.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "labels.org_id", "name": "org_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "labels.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "labels.color", "name": "color", "type": "text", "nullable": false, "primaryKey": false, "unique": false, "default": "'#6b7280'" }
+      ],
+      "indexes": [{ "id": "labels.org_name_idx", "name": "labels_org_name_idx", "table": "labels", "columns": ["labels.org_id", "labels.name"], "unique": true }]
+    },
+    {
+      "id": "issue_labels", "name": "issue_labels", "description": "Many-to-many join between issues and labels.",
+      "columns": [
+        { "id": "issue_labels.issue_id", "name": "issue_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
+        { "id": "issue_labels.label_id", "name": "label_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false }
+      ],
+      "indexes": [{ "id": "issue_labels.label_idx", "name": "issue_labels_label_idx", "table": "issue_labels", "columns": ["issue_labels.label_id"], "unique": false }]
+    },
+    {
+      "id": "sprints", "name": "sprints", "description": "Time-boxed iterations for planning work.",
+      "columns": [
+        { "id": "sprints.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "sprints.project_id", "name": "project_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "sprints.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "sprints.start_date", "name": "start_date", "type": "date", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "sprints.end_date", "name": "end_date", "type": "date", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "sprints.status", "name": "status", "type": "sprint_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'planned'" }
+      ],
+      "indexes": [{ "id": "sprints.project_idx", "name": "sprints_project_idx", "table": "sprints", "columns": ["sprints.project_id"], "unique": false }]
+    }
+  ],
+  "enums": [
+    { "id": "org_role", "name": "org_role", "values": ["owner", "admin", "member", "viewer"], "description": "Organization membership roles." },
+    { "id": "issue_status", "name": "issue_status", "values": ["backlog", "todo", "in_progress", "in_review", "done", "cancelled"], "description": "Issue workflow states." },
+    { "id": "issue_priority", "name": "issue_priority", "values": ["urgent", "high", "medium", "low", "none"], "description": "Issue priority levels." },
+    { "id": "sprint_status", "name": "sprint_status", "values": ["planned", "active", "completed"], "description": "Sprint lifecycle states." }
+  ],
+  "relations": [
+    { "id": "users_org", "name": "users_org", "from": { "table": "users", "columns": ["users.org_id"] }, "to": { "table": "organizations", "columns": ["organizations.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "projects_org", "name": "projects_org", "from": { "table": "projects", "columns": ["projects.org_id"] }, "to": { "table": "organizations", "columns": ["organizations.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "projects_lead", "name": "projects_lead", "from": { "table": "projects", "columns": ["projects.lead_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "issues_project", "name": "issues_project", "from": { "table": "issues", "columns": ["issues.project_id"] }, "to": { "table": "projects", "columns": ["projects.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "issues_assignee", "name": "issues_assignee", "from": { "table": "issues", "columns": ["issues.assignee_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "issues_reporter", "name": "issues_reporter", "from": { "table": "issues", "columns": ["issues.reporter_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "restrict" },
+    { "id": "issues_parent", "name": "issues_parent", "from": { "table": "issues", "columns": ["issues.parent_id"] }, "to": { "table": "issues", "columns": ["issues.id"] }, "cardinality": "many-to-one", "onDelete": "set-null" },
+    { "id": "comments_issue", "name": "comments_issue", "from": { "table": "comments", "columns": ["comments.issue_id"] }, "to": { "table": "issues", "columns": ["issues.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "comments_author", "name": "comments_author", "from": { "table": "comments", "columns": ["comments.author_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "labels_org", "name": "labels_org", "from": { "table": "labels", "columns": ["labels.org_id"] }, "to": { "table": "organizations", "columns": ["organizations.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "issue_labels_issue", "name": "issue_labels_issue", "from": { "table": "issue_labels", "columns": ["issue_labels.issue_id"] }, "to": { "table": "issues", "columns": ["issues.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "issue_labels_label", "name": "issue_labels_label", "from": { "table": "issue_labels", "columns": ["issue_labels.label_id"] }, "to": { "table": "labels", "columns": ["labels.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "sprints_project", "name": "sprints_project", "from": { "table": "sprints", "columns": ["sprints.project_id"] }, "to": { "table": "projects", "columns": ["projects.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" }
+  ],
+  "metadata": {
+    "editor": {
+      "tablePositions": {
+        "organizations": { "x": 60, "y": 60 },
+        "users": { "x": 60, "y": 380 },
+        "projects": { "x": 460, "y": 60 },
+        "issues": { "x": 460, "y": 380 },
+        "comments": { "x": 880, "y": 380 },
+        "labels": { "x": 880, "y": 60 },
+        "issue_labels": { "x": 880, "y": 700 },
+        "sprints": { "x": 460, "y": 700 }
+      }
+    }
+  }
+}

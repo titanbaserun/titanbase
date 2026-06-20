@@ -1,0 +1,46 @@
+{
+  "titanVersion": "1.0",
+  "project": { "id": "blog", "name": "Editorial Blog" },
+  "dialect": "postgres",
+  "tables": [
+    {
+      "id": "users", "name": "users", "description": "People who publish and comment.",
+      "columns": [
+        { "id": "users.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "users.email", "name": "email", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "users.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "users.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
+      ],
+      "indexes": [{ "id": "users.email_idx", "name": "users_email_idx", "table": "users", "columns": ["users.email"], "unique": true }]
+    },
+    {
+      "id": "posts", "name": "posts", "description": "Blog posts authored by users.",
+      "columns": [
+        { "id": "posts.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "posts.author_id", "name": "author_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "posts.title", "name": "title", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "posts.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
+        { "id": "posts.content", "name": "content", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
+        { "id": "posts.published_at", "name": "published_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false }
+      ],
+      "indexes": [{ "id": "posts.slug_idx", "name": "posts_slug_idx", "table": "posts", "columns": ["posts.slug"], "unique": true }]
+    },
+    {
+      "id": "comments", "name": "comments", "description": "Reader comments left on posts.",
+      "columns": [
+        { "id": "comments.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true, "default": "gen_random_uuid()" },
+        { "id": "comments.post_id", "name": "post_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "comments.author_id", "name": "author_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
+        { "id": "comments.body", "name": "body", "type": "text", "nullable": false, "primaryKey": false, "unique": false }
+      ],
+      "indexes": [{ "id": "comments.post_idx", "name": "comments_post_idx", "table": "comments", "columns": ["comments.post_id"], "unique": false }]
+    }
+  ],
+  "enums": [],
+  "relations": [
+    { "id": "posts_author", "name": "posts_author", "from": { "table": "posts", "columns": ["posts.author_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "comments_post", "name": "comments_post", "from": { "table": "comments", "columns": ["comments.post_id"] }, "to": { "table": "posts", "columns": ["posts.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" },
+    { "id": "comments_author", "name": "comments_author", "from": { "table": "comments", "columns": ["comments.author_id"] }, "to": { "table": "users", "columns": ["users.id"] }, "cardinality": "many-to-one", "onDelete": "cascade" }
+  ],
+  "metadata": { "editor": { "tablePositions": { "users": { "x": 70, "y": 80 }, "posts": { "x": 520, "y": 210 }, "comments": { "x": 430, "y": 550 } } } }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "@titanbase/editor",
+  "version": "0.1.0",
+  "description": "Visual database schema editor — React component for designing tables, relations, and indexes.",
+  "license": "MIT",
+  "author": "Titanbase Contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/titanbaserun/titanbase.git",
+    "directory": "packages/editor"
+  },
+  "homepage": "https://github.com/titanbaserun/titanbase",
+  "keywords": ["database", "schema", "visual-editor", "react", "reactflow", "erd", "titanbase"],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "LICENSE"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
+    "@titanbase/core": "workspace:*",
+    "@titanbase/export-postgres": "workspace:*",
+    "@titanbase/ui": "workspace:*",
+    "@xyflow/react": "^12.8.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  }
+}

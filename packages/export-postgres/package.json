@@ -1,0 +1,42 @@
+{
+  "name": "@titanbase/export-postgres",
+  "version": "0.1.0",
+  "description": "PostgreSQL DDL code generator for Titanbase schemas.",
+  "license": "MIT",
+  "author": "Titanbase Contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/titanbaserun/titanbase.git",
+    "directory": "packages/export-postgres"
+  },
+  "homepage": "https://github.com/titanbaserun/titanbase",
+  "keywords": ["database", "postgres", "sql", "ddl", "code-generator", "titanbase"],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "LICENSE"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@titanbase/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "@titanbase/core": ">=0.1.0"
+  }
+}
