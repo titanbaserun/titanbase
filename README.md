@@ -29,7 +29,8 @@ pnpm test         # Run all tests
 | `@titanbase/editor` | React visual editor component | Yes |
 | `@titanbase/export-postgres` | PostgreSQL DDL generator | Yes |
 | `@titanbase/ui` | Shared UI primitives | Yes |
-| `@titanbase/web` | Next.js app (hosts editor) | No (private) |
+
+`apps/web` is the local editor host app (Next.js, not published to npm).
 
 ## Embedding
 
@@ -85,7 +86,7 @@ packages/
   export-postgres/   PostgreSQL DDL code generator
   ui/                Button, Input, Select, Badge, etc.
 apps/
-  web/               Next.js app at /editor
+  web/               Local editor host app (Next.js, not a published package)
 examples/            Sample schemas (blog, ecommerce, saas, messaging, PM)
 ```
 
@@ -116,4 +117,4 @@ examples/            Sample schemas (blog, ecommerce, saas, messaging, PM)
 
 ## License
 
-MIT
+Apache-2.0

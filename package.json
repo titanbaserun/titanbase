@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Visual database schema editor with portable JSON schema format.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/titanbaserun/titanbase.git"

@@ -2,7 +2,7 @@
   "name": "@titanbase/ui",
   "version": "0.1.0",
   "description": "Shared UI components for the Titanbase visual editor.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Titanbase Contributors",
   "repository": {
     "type": "git",

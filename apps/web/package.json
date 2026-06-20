@@ -1,9 +1,9 @@
 {
-  "name": "@titanbase/web",
+  "name": "titanbase-web",
   "version": "0.1.0",
   "private": true,
   "description": "Next.js app hosting the Titanbase visual editor.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
