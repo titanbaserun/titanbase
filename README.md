@@ -37,15 +37,9 @@ pnpm test         # Run all tests
 ```tsx
 import { SchemaEditor } from "@titanbase/editor";
 
-// Local mode — localStorage persistence
-<SchemaEditor initialSchema={schema} />
-
-// Cloud mode — external persistence
 <SchemaEditor
   initialSchema={schema}
-  onSave={(s) => api.save(s)}
-  onSchemaChange={(s) => sync(s)}
-  cloudMode
+  onSchemaChange={setSchema}
 />
 ```
 

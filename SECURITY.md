@@ -13,7 +13,7 @@ Include:
 - Steps to reproduce
 - Impact assessment (if possible)
 
-We will acknowledge receipt within 48 hours and provide a timeline for a fix.
+We aim to acknowledge receipt within 72 hours and provide a timeline for a fix.
 
 ## Current status
 
