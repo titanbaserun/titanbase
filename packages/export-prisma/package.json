@@ -1,0 +1,20 @@
+{
+  "name": "@titanbase/export-prisma",
+  "version": "0.3.0",
+  "description": "Prisma schema generator for Titanbase schemas.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist", "LICENSE"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": { "@titanbase/core": "workspace:*" },
+  "devDependencies": { "typescript": "^5.9.3", "vitest": "^3.2.4" }
+}

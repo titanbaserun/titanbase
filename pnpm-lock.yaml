@@ -91,9 +91,18 @@ importers:
       '@titanbase/core':
         specifier: workspace:*
         version: link:../core
+      '@titanbase/export-drizzle':
+        specifier: workspace:*
+        version: link:../export-drizzle
+      '@titanbase/export-mermaid':
+        specifier: workspace:*
+        version: link:../export-mermaid
       '@titanbase/export-postgres':
         specifier: workspace:*
         version: link:../export-postgres
+      '@titanbase/export-prisma':
+        specifier: workspace:*
+        version: link:../export-prisma
       '@titanbase/ui':
         specifier: workspace:*
         version: link:../ui
@@ -120,7 +129,46 @@ importers:
         specifier: ^3.2.4
         version: 3.2.6(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)
 
+  packages/export-drizzle:
+    dependencies:
+      '@titanbase/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)
+
+  packages/export-mermaid:
+    dependencies:
+      '@titanbase/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)
+
   packages/export-postgres:
+    dependencies:
+      '@titanbase/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)
+
+  packages/export-prisma:
     dependencies:
       '@titanbase/core':
         specifier: workspace:*

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
 import { createEmptySchema, diagnoseSchema, normalizeSchema, validateTitanSchema, type TitanSchema } from "../src";
+import { loadExampleSchemas } from "../../../test-utils/example-schemas";
 
 const validSchema: TitanSchema = {
   titanVersion: "1.0",
@@ -17,6 +17,25 @@ const validSchema: TitanSchema = {
   metadata: { editor: { tablePositions: { users: { x: 20, y: 40 } } } },
 };
 
+const diagnosticCodes = (schema: unknown) => diagnoseSchema(schema).map((diagnostic) => diagnostic.code);
+
+function schemaWithRelation() {
+  const schema = structuredClone(validSchema);
+  schema.tables.push({
+    id: "posts",
+    name: "posts",
+    description: "Published posts.",
+    columns: [
+      { id: "posts.id", name: "id", type: "uuid", nullable: false, primaryKey: true, unique: true },
+      { id: "posts.user_id", name: "user_id", type: "uuid", nullable: false, primaryKey: false, unique: false },
+    ],
+    indexes: [],
+  });
+  schema.metadata.editor.tablePositions.posts = { x: 300, y: 40 };
+  schema.relations.push({ id: "posts_user", name: "posts_user", from: { table: "posts", columns: ["posts.user_id"] }, to: { table: "users", columns: ["users.id"] }, cardinality: "many-to-one" });
+  return schema;
+}
+
 describe("TitanSchema validation", () => {
   it("creates a valid empty schema", () => {
     const empty = createEmptySchema();
@@ -27,10 +46,9 @@ describe("TitanSchema validation", () => {
   });
 
   // --- Fixture validation ---
-  for (const example of ["blog/blog.titan.json", "saas/saas.titan.json", "ecommerce/ecommerce.titan.json", "project-management/project-management.titan.json", "messaging/messaging.titan.json"]) {
-    it(`validates the ${example} fixture`, () => {
-      const fixture = JSON.parse(readFileSync(new URL(`../../../examples/${example}`, import.meta.url), "utf8"));
-      const result = validateTitanSchema(fixture);
+  for (const example of loadExampleSchemas()) {
+    it(`validates the ${example.name} fixture without errors`, () => {
+      const result = validateTitanSchema(example.schema);
       const errors = result.diagnostics.filter((d) => d.severity === "error");
       expect(errors).toEqual([]);
       expect(result.success).toBe(true);
@@ -161,5 +179,109 @@ describe("TitanSchema validation", () => {
     dup.tables[0]?.columns.push({ id: "users.id2", name: "id", type: "uuid", nullable: false, primaryKey: false, unique: false });
     const issue = diagnoseSchema(dup).find((d) => d.code === "column.duplicate-name");
     expect(issue?.entityId).toBe("users.id2");
+  });
+
+  describe("project diagnostics", () => {
+    it("reports a missing project name", () => {
+      const schema = structuredClone(validSchema) as TitanSchema & { project: { id: string; name?: string } };
+      delete schema.project.name;
+      expect(diagnosticCodes(schema)).toContain("project.missing-name");
+    });
+
+    it("reports an unsupported dialect", () => {
+      const schema = { ...structuredClone(validSchema), dialect: "oracle" };
+      expect(diagnosticCodes(schema)).toContain("project.unsupported-dialect");
+    });
+  });
+
+  describe("table and column diagnostics", () => {
+    it("warns for tables without a primary key and empty tables", () => {
+      const noPrimaryKey = structuredClone(validSchema);
+      noPrimaryKey.tables[0]!.columns[0]!.primaryKey = false;
+      expect(diagnosticCodes(noPrimaryKey)).toContain("table.no-primary-key");
+      const empty = structuredClone(validSchema);
+      empty.tables[0]!.columns = [];
+      expect(diagnosticCodes(empty)).toContain("table.no-columns");
+    });
+
+    it("reports nullable primary keys and missing enum references", () => {
+      const schema = structuredClone(validSchema);
+      schema.tables[0]!.columns[0]!.nullable = true;
+      schema.tables[0]!.columns.push({ id: "users.role", name: "role", type: "missing_enum", nullable: false, primaryKey: false, unique: false });
+      expect(diagnosticCodes(schema)).toEqual(expect.arrayContaining(["column.nullable-primary-key", "column.missing-enum"]));
+    });
+
+    it("warns for unknown types and incompatible defaults", () => {
+      const schema = structuredClone(validSchema);
+      schema.tables[0]!.columns.push({ id: "users.score", name: "score", type: "vector", nullable: false, primaryKey: false, unique: false });
+      schema.tables[0]!.columns.push({ id: "users.active", name: "active", type: "boolean", nullable: false, primaryKey: false, unique: false, default: "'yes'" });
+      expect(diagnosticCodes(schema)).toEqual(expect.arrayContaining(["column.unknown-type", "column.default-type-mismatch"]));
+    });
+  });
+
+  describe("relation diagnostics", () => {
+    it("reports missing targets, count mismatches, and type mismatches", () => {
+      const missingTable = schemaWithRelation();
+      missingTable.relations[0]!.to.table = "missing";
+      expect(diagnosticCodes(missingTable)).toContain("relation.invalid-table");
+      const missingColumn = schemaWithRelation();
+      missingColumn.relations[0]!.to.columns = ["users.missing"];
+      expect(diagnosticCodes(missingColumn)).toContain("relation.invalid-column");
+      const countMismatch = schemaWithRelation();
+      countMismatch.relations[0]!.to.columns.push("users.id");
+      expect(diagnosticCodes(countMismatch)).toContain("relation.column-count");
+      const typeMismatch = schemaWithRelation();
+      typeMismatch.tables[1]!.columns[1]!.type = "integer";
+      expect(diagnosticCodes(typeMismatch)).toContain("relation.type-mismatch");
+    });
+
+    it("warns for unindexed foreign keys and invalid SET NULL", () => {
+      const schema = schemaWithRelation();
+      schema.relations[0]!.onDelete = "set-null";
+      expect(diagnosticCodes(schema)).toEqual(expect.arrayContaining(["relation.unindexed-foreign-key", "relation.set-null-non-nullable"]));
+    });
+
+    it("reports relations targeting non-unique columns", () => {
+      const schema = schemaWithRelation();
+      schema.tables[0]!.columns.push({ id: "users.email", name: "email", type: "uuid", nullable: false, primaryKey: false, unique: false });
+      schema.relations[0]!.to.columns = ["users.email"];
+      expect(diagnosticCodes(schema)).toContain("relation.non-unique-target");
+    });
+  });
+
+  describe("index diagnostics", () => {
+    it("reports missing and duplicate index columns", () => {
+      const schema = structuredClone(validSchema);
+      schema.tables[0]!.indexes.push({ id: "broken", name: "broken", table: "users", columns: ["users.missing", "users.missing"], unique: false });
+      expect(diagnosticCodes(schema)).toEqual(expect.arrayContaining(["index.invalid-column", "index.duplicate-column"]));
+    });
+
+    it("warns for duplicate definitions and non-Postgres partial indexes", () => {
+      const schema = structuredClone(validSchema);
+      schema.dialect = "mysql";
+      schema.tables[0]!.indexes = [
+        { id: "one", name: "one", table: "users", columns: ["users.id"], unique: false },
+        { id: "two", name: "two", table: "users", columns: ["users.id"], unique: false, where: "id IS NOT NULL" },
+      ];
+      expect(diagnosticCodes(schema)).toEqual(expect.arrayContaining(["index.duplicate-definition", "index.partial-dialect"]));
+    });
+  });
+
+  describe("enum and metadata diagnostics", () => {
+    it("reports duplicate names, missing values, duplicate values, and unused enums", () => {
+      const duplicate = structuredClone(validSchema);
+      duplicate.enums = [{ id: "one", name: "role", values: ["admin", "admin"] }, { id: "two", name: "ROLE", values: ["user"] }];
+      expect(diagnosticCodes(duplicate)).toEqual(expect.arrayContaining(["enum.duplicate-name", "enum.duplicate-value", "enum.unused"]));
+      const empty = structuredClone(validSchema);
+      empty.enums = [{ id: "empty", name: "empty", values: [] }];
+      expect(diagnosticCodes(empty)).toContain("enum.no-values");
+    });
+
+    it("warns for stale editor metadata", () => {
+      const schema = structuredClone(validSchema);
+      schema.metadata.editor.tablePositions.missing = { x: 0, y: 0 };
+      const issue = diagnoseSchema(schema).find((diagnostic) => diagnostic.code === "metadata.invalid-table");
+      expect(issue).toMatchObject({ severity: "warning", entityType: "metadata", tableId: "missing" });
+    });
   });
 });

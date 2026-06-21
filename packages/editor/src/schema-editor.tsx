@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } f
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow, useReactFlow, ReactFlowProvider, type Edge, type Node, type NodeChange } from "@xyflow/react";
 import { ArrowArcLeft, ArrowArcRight, BookOpen, BracketsCurly, CaretDoubleRight, CheckCircle, Database, DownloadSimple, FilePlus, FloppyDisk, FolderOpen, Gear, Link, MagnifyingGlass, Moon, Plus, PushPin, PushPinSlash, SidebarSimple, Sun, Table as TableIcon, TreeStructure, WarningCircle } from "@phosphor-icons/react";
 import { createEmptySchema, diagnoseSchema, normalizeSchema, type TitanDiagnostic, type TitanEnum, type TitanIndex, type TitanRelation, type TitanSchema, type TitanTable } from "@titanbase/core";
+import { exportDrizzle } from "@titanbase/export-drizzle";
+import { exportMermaid } from "@titanbase/export-mermaid";
 import { exportPostgres } from "@titanbase/export-postgres";
+import { exportPrisma } from "@titanbase/export-prisma";
 import { Badge, Button, Input } from "@titanbase/ui";
 import { ExportModal } from "./export-modal";
 import { createExportFilename, type ExportTarget } from "./export-utils";
@@ -70,7 +73,7 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
   const { schema } = history;
   const [selection, setSelection] = useState<EditorSelection>(null);
   const [multiSelection, setMultiSelection] = useState<MultiSelection>(emptyMultiSelection);
-  const [preview, setPreview] = useState<"json" | "sql" | null>(null);
+  const [preview, setPreview] = useState<ExportTarget | null>(null);
   const [notice, setNotice] = useState("Saved");
   const [filename, setFilename] = useState(schema.tables.length ? `${schema.project.id}.titan.json` : "untitled.titan.json");
   const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(schema));
@@ -231,7 +234,17 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
 
   const diagnostics = useMemo(() => diagnoseSchema(schema), [schema]);
   const sqlResult = useMemo(() => exportPostgres(schema), [schema]);
-  const previewContent = preview === "sql" ? sqlResult.sql : JSON.stringify(schema, null, 2);
+  const mermaidResult = useMemo(() => exportMermaid(schema), [schema]);
+  const prismaResult = useMemo(() => exportPrisma(schema), [schema]);
+  const drizzleResult = useMemo(() => exportDrizzle(schema), [schema]);
+  const exportPreview = useMemo(() => {
+    if (preview === "sql") return { content: sqlResult.sql, warnings: sqlResult.warnings };
+    if (preview === "mermaid") return { content: mermaidResult.files[0]?.content ?? "", warnings: mermaidResult.warnings.map((warning) => warning.message) };
+    if (preview === "prisma") return { content: prismaResult.files[0]?.content ?? "", warnings: prismaResult.warnings.map((warning) => warning.message) };
+    if (preview === "drizzle") return { content: drizzleResult.files[0]?.content ?? "", warnings: drizzleResult.warnings.map((warning) => warning.message) };
+    return { content: JSON.stringify(schema, null, 2), warnings: [] };
+  }, [drizzleResult, mermaidResult, preview, prismaResult, schema, sqlResult]);
+  const previewContent = exportPreview.content;
   const groupedDiagnostics = useMemo(() => Object.entries(diagnostics.reduce<Record<string, TitanDiagnostic[]>>((groups, issue) => {
     const group = diagnosticGroup(issue, schema);
     (groups[group] ??= []).push(issue);
@@ -398,13 +411,36 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
   };
 
   const copyPreview = async () => {
-    await navigator.clipboard.writeText(previewContent);
-    setNotice(`${preview === "sql" ? "SQL" : "JSON"} copied`);
+    const labels: Record<ExportTarget, string> = { json: "JSON", sql: "PostgreSQL", mermaid: "Mermaid", prisma: "Prisma", drizzle: "Drizzle" };
+    try {
+      await navigator.clipboard.writeText(previewContent);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = previewContent;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      textarea.remove();
+      if (!copied) {
+        setNotice("Copy permission blocked");
+        return false;
+      }
+    }
+    setNotice(`${labels[preview ?? "json"]} copied`);
+    return true;
   };
 
   const downloadContent = (target: ExportTarget, content: string) => {
-    const isSql = target === "sql";
-    const blob = new Blob([content], { type: isSql ? "text/sql" : "application/json" });
+    const mimeTypes: Record<ExportTarget, string> = {
+      json: "application/json",
+      sql: "text/sql",
+      mermaid: "text/plain",
+      prisma: "text/plain",
+      drizzle: "text/typescript",
+    };
+    const blob = new Blob([content], { type: mimeTypes[target] });
     const anchor = document.createElement("a");
     anchor.href = URL.createObjectURL(blob);
     anchor.download = createExportFilename(schema.project.name, target);
@@ -600,7 +636,7 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
       <button className="diagnostics-header" onClick={() => diagnostics.length && setValidationOpen((open) => !open)}><div className="diagnostic-summary">{diagnostics.some((issue) => issue.severity === "error") ? <WarningCircle size={19} weight="fill" /> : <CheckCircle size={19} weight="fill" />}<strong>{diagnostics.some((issue) => issue.severity === "error") ? "Schema has errors" : "Schema valid"}</strong><span>{diagnostics.length} issue{diagnostics.length === 1 ? "" : "s"}</span><span>{saveStatus}</span></div><div className="schema-stats">{statistics.tables} tables <i /> {statistics.columns} columns <i /> {statistics.relations} relations <i /> {statistics.indexes} indexes <i /> {statistics.enums} enums</div></button>
       {validationOpen && diagnostics.length ? <div className="diagnostic-groups">{groupedDiagnostics.map(([group, issues]) => <section key={group}><h3>{group}<Badge tone={issues?.some((issue) => issue.severity === "error") ? "amber" : "neutral"}>{issues?.length ?? 0}</Badge></h3>{issues?.map((issue) => <button key={`${issue.code}-${issue.path}`} onClick={() => { const next = selectionForDiagnostic(issue.path, schema); if (next) { setSelection(next); setPreview(null); } }}><Badge tone={issue.severity === "error" ? "amber" : "neutral"}>{issue.severity}</Badge><span><strong>{issue.message}</strong><code>{issue.path}</code></span></button>)}</section>)}</div> : null}
     </footer>
-    {preview ? <ExportModal tab={preview} content={previewContent} diagnostics={diagnostics} warnings={sqlResult.warnings} onTab={setPreview} onClose={() => setPreview(null)} onCopy={copyPreview} onDownload={download} /> : null}
+    {preview ? <ExportModal tab={preview} content={previewContent} diagnostics={diagnostics} warnings={exportPreview.warnings} onTab={setPreview} onClose={() => setPreview(null)} onCopy={copyPreview} onDownload={download} /> : null}
     {settingsOpen && onSettingsChange ? <SettingsDialog settings={settings} onChange={onSettingsChange} onClearDraft={clearLocalDraft} onReset={() => { onResetSettings?.(); setNotice("Settings reset"); }} onClose={() => setSettingsOpen(false)} /> : null}
     {leaveOpen ? <LeaveDialog onSaveAndLeave={saveAndLeave} onLeave={returnToWelcome} onCancel={() => setLeaveOpen(false)} /> : null}
     {replaceOpen ? <ReplaceDialog onReplace={() => { const action = replaceAction.current; replaceAction.current = null; setReplaceOpen(false); action?.(); }} onCancel={() => { replaceAction.current = null; setReplaceOpen(false); }} /> : null}

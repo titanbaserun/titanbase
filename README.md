@@ -23,12 +23,15 @@ pnpm test         # Run all tests
 
 ## Packages
 
-| Package | Description | Published |
-|---------|-------------|-----------|
-| `@titanbase/core` | Schema types, Zod validation, diagnostics | Yes |
-| `@titanbase/editor` | React visual editor component | Yes |
-| `@titanbase/export-postgres` | PostgreSQL DDL generator | Yes |
-| `@titanbase/ui` | Shared UI primitives | Yes |
+| Package | Description | Status |
+|---------|-------------|--------|
+| `@titanbase/core` | Schema types, Zod validation, diagnostics | Workspace package |
+| `@titanbase/editor` | React visual editor component | Workspace package |
+| `@titanbase/export-postgres` | PostgreSQL DDL generator | Workspace package |
+| `@titanbase/export-mermaid` | Mermaid ER diagram generator | Workspace package |
+| `@titanbase/export-prisma` | Prisma schema generator | Workspace package |
+| `@titanbase/export-drizzle` | Drizzle PostgreSQL schema generator | Workspace package |
+| `@titanbase/ui` | Shared UI primitives | Workspace package |
 
 `apps/web` is the local editor host app (Next.js, not published to npm).
 
@@ -50,15 +53,20 @@ import { SchemaEditor } from "@titanbase/editor";
 - Create and edit schemas visually
 - Tables, columns, relations, indexes, enums
 - Save/load `.titan.json` files
+- Export Titan JSON
 - Export PostgreSQL SQL
+- Export Mermaid ER diagrams
+- Export Prisma schemas
+- Export Drizzle PostgreSQL schemas
+- Review export warnings for unsupported or ambiguous schema features
 - Validate schema with diagnostics
 - Undo/redo, keyboard shortcuts, dark mode
 - CLI (planned)
-- Export to Prisma/Drizzle/Mermaid/DBML (planned)
+- Export to DBML (planned)
 - Import from `.sql` file (planned)
 - Store in Git
 
-**Paid / Titanbase Cloud** — team and enterprise value:
+**Possible future / Titanbase Cloud (not implemented)** — potential team and enterprise value:
 
 - Cloud projects & team workspaces
 - Realtime collaboration
@@ -77,7 +85,10 @@ import { SchemaEditor } from "@titanbase/editor";
 packages/
   core/              .titan.json types, Zod schemas, diagnostics, normalization
   editor/            React visual editor (ReactFlow + inspector)
+  export-drizzle/    Drizzle PostgreSQL schema generator
+  export-mermaid/    Mermaid ER diagram generator
   export-postgres/   PostgreSQL DDL code generator
+  export-prisma/     Prisma schema generator
   ui/                Button, Input, Select, Badge, etc.
 apps/
   web/               Local editor host app (Next.js, not a published package)
@@ -95,10 +106,9 @@ examples/            Sample schemas (blog, ecommerce, saas, messaging, PM)
    ┌───────────▼──────────┐   ┌──────────▼──────────────┐
    │  @titanbase/editor    │   │  @titanbase/export-*     │
    │  React component      │   │  Code generators         │
-   │  Canvas + Inspector   │   │  (postgres, mysql, ...)  │
-   │  Mutation engine      │   └─────────────────────────┘
-   │  Undo/redo history    │
-   └───────────┬───────────┘
+   │  Canvas + Inspector   │   │  Postgres · Mermaid      │
+   │  Mutation engine      │   │  Prisma · Drizzle        │
+   └───────────┬───────────┘   └─────────────────────────┘
                │
    ┌───────────▼───────────┐
    │  @titanbase/web        │   ← open source host app

@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0]
+
+### Added
+
+#### Exporters
+- Added `@titanbase/export-mermaid` for Mermaid ER diagrams.
+- Added `@titanbase/export-prisma` for Prisma schema files.
+- Added `@titanbase/export-drizzle` for Drizzle PostgreSQL schema files.
+- Added shared `ExportFile`, `ExportWarning`, and `ExportResult` contracts to `@titanbase/core`.
+- Added deterministic exporter coverage across all example schemas.
+- Added reserved-word, identifier-collision, enum, relation, index, default, and empty-schema tests.
+
+#### Editor
+- Added Mermaid, Prisma, and Drizzle tabs to the export modal.
+- Added per-target warnings, previews, copy actions, and file downloads.
+- Added Clipboard API fallback behavior for restricted browsers.
+- Added pinnable, collapsible, and hover-preview inspector behavior.
+- Added project overview, blank-schema flow, richer table cards, relation labels, and compact status bar.
+
+### Changed
+
+- Light mode is now the default theme for new and reset editor settings.
+- Improved Mermaid identifier collision handling and relation diagnostics.
+- Improved Prisma identifier mapping, enum defaults, unique constraints, and ambiguous relation handling.
+- Improved Drizzle dependency ordering, reserved identifiers, safe defaults, minimal imports, and cyclic relation warnings.
+- Updated README and roadmap to reflect the available local exporters and current product scope.
+
+### Fixed
+
+- Prevented generated Prisma relations from referencing non-unique target fields.
+- Prevented duplicate Prisma unique constraints when a column is already unique.
+- Prevented unsafe Drizzle forward and self references from producing brittle generated code.
+- Prevented long exporter warnings from overflowing the export modal.
+
 ## [0.2.0]
 
 ### Added
@@ -65,5 +99,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Next.js host application (`apps/web`).
 - Five starter example schemas: blog, ecommerce, messaging, project-management, saas.
 
+[0.3.0]: https://github.com/titanbaserun/titanbase/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/titanbaserun/titanbase/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/titanbaserun/titanbase/releases/tag/v0.1.0

@@ -340,7 +340,8 @@ button { cursor: pointer; }
 .export-modal > header h2, .settings-modal > header h2, .leave-modal > header h2, .replace-modal > header h2 { margin: 4px 0 18px; font-size: 22px; letter-spacing: -.025em; }
 .modal-close { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); color: var(--muted); }
 .modal-close:hover { border-color: var(--muted); color: var(--ink); }
-.export-tabs { display: inline-flex; gap: 3px; margin-bottom: 16px; padding: 3px; border: 1px solid var(--line); border-radius: 7px; background: var(--canvas); }
+.export-tabs { display: flex; max-width: 100%; gap: 3px; margin-bottom: 16px; padding: 3px; overflow-x: auto; border: 1px solid var(--line); border-radius: 7px; background: var(--canvas); }
+.export-tabs button { flex: 0 0 auto; }
 .export-tabs button { min-height: 30px; padding: 0 12px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 700; }
 .export-tabs button.active { background: var(--panel); color: var(--ink); box-shadow: 0 1px 4px rgba(10,16,12,.08); }
 .export-target { display: flex; align-items: center; gap: 7px; padding: 12px 0; border-top: 1px solid var(--line); }
@@ -354,7 +355,7 @@ button { cursor: pointer; }
 .export-validation-warning { margin: 0 0 12px; border-color: color-mix(in srgb, var(--warning) 40%, var(--line)); background: color-mix(in srgb, var(--warning) 10%, var(--panel)); color: var(--warning); }
 .export-warnings { margin: 0 0 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 7px; color: var(--warning); font-size: 10px; }
 .export-warnings summary { cursor: pointer; font-weight: 700; }
-.export-warnings p { margin: 7px 0 0; color: var(--muted); line-height: 1.45; }
+.export-warnings p { margin: 7px 0 0; overflow-wrap: anywhere; color: var(--muted); line-height: 1.45; }
 .export-code { max-height: min(420px, 50vh); min-height: 270px; margin: 0; padding: 16px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--code-bg); color: var(--code-fg); font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; tab-size: 2; white-space: pre; }
 
 /* Settings and leave dialogs */

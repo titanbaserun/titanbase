@@ -13,7 +13,7 @@ export interface EditorAppSettings {
 }
 
 export const fallbackEditorSettings: EditorAppSettings = {
-  theme: "system",
+  theme: "light",
   showMinimap: true,
   showGrid: true,
   autoFitViewOnLoad: true,

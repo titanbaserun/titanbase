@@ -2,6 +2,7 @@ import { BracketsCurly, CheckCircle, Database, FolderOpen, Link, Plus, Table, Wa
 import type { TitanDiagnostic, TitanDialect, TitanSchema } from "@titanbase/core";
 import { Button, Input, Select, Textarea } from "@titanbase/ui";
 import { getSchemaStatistics } from "./schema-visuals";
+import type { ExportTarget } from "./export-utils";
 import type { SchemaMutation } from "./schema-state";
 
 interface ProjectOverviewProps {
@@ -12,7 +13,7 @@ interface ProjectOverviewProps {
   onAddTable: () => void;
   onAddRelation: () => void;
   onAddEnum: () => void;
-  onExport: (tab: "json" | "sql") => void;
+  onExport: (tab: ExportTarget) => void;
   onOpen: () => void;
   onTemplates: () => void;
 }

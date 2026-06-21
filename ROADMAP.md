@@ -17,7 +17,7 @@ This roadmap describes the current direction, not a fixed release schedule. Prio
 
 - [x] Finish and harden the local web editor before expanding into desktop, CLI, or cloud workflows.
 - [ ] Harden the local editor UX and validation.
-- [ ] Add additional exporters one at a time with fixtures and tests.
+- [x] Add Mermaid, Prisma, and Drizzle exporters with focused tests.
 - [ ] Document the `.titan.json` format.
 - [ ] Add SQL import and schema diff foundations.
 - [ ] Package the proven local workflow as a desktop application.
@@ -97,15 +97,17 @@ This roadmap describes the current direction, not a fixed release schedule. Prio
 - [ ] Add dialect-specific type and default diagnostics.
 - [ ] Detect unsafe or contradictory constraints.
 - [ ] Improve diagnostics for composite keys and composite relations.
-- [ ] Export Mermaid ERD.
-- [ ] Export Prisma schema.
-- [ ] Export Drizzle schema.
+- [x] Export Mermaid ERD.
+- [x] Export Prisma schema.
+- [x] Export Drizzle schema.
 
 ### MVP Hardening
 
 - [x] Unit tests for schema mutations and undo/redo.
 - [x] Unit tests for schema statistics, FK detection, index detection, and relation labels.
 - [x] PostgreSQL exporter tests.
+- [x] Mermaid, Prisma, and Drizzle exporter tests across every example schema.
+- [x] Exporter edge-case coverage for identifiers, warnings, relations, indexes, defaults, and empty schemas.
 - [x] App settings persistence tests.
 - [ ] Add component-level tests for critical editor workflows.
 - [ ] Add automated browser tests for blank, template, edit, save, and export flows.
@@ -119,12 +121,12 @@ This roadmap describes the current direction, not a fixed release schedule. Prio
 
 ### Additional Exporters
 
-- [ ] Export Mermaid ER diagrams.
-- [ ] Export Prisma schema files.
-- [ ] Export Drizzle PostgreSQL schema files.
-- [ ] Add deterministic exporter fixtures.
-- [ ] Add exporter warning coverage for unsupported features.
-- [ ] Add exporter tests for Blog, SaaS, Ecommerce, Marketplace, CRM, and Analytics templates.
+- [x] Export Mermaid ER diagrams.
+- [x] Export Prisma schema files.
+- [x] Export Drizzle PostgreSQL schema files.
+- [x] Use all example schemas as deterministic exporter fixtures.
+- [x] Add exporter warning coverage for unsupported features.
+- [x] Add exporter tests for Blog, SaaS, Ecommerce, Marketplace, CRM, Analytics, and all additional templates.
 - [ ] Add round-trip-style tests where practical.
 - [ ] Export DBML.
 

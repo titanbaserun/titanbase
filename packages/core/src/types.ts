@@ -82,7 +82,8 @@ export interface TitanSchema {
   };
 }
 
-export type DiagnosticSeverity = "error" | "warning";
+export type DiagnosticSeverity = "error" | "warning" | "info";
+export type DiagnosticEntityType = "project" | "table" | "column" | "relation" | "index" | "enum" | "metadata";
 
 export interface TitanDiagnostic {
   code: string;
@@ -90,4 +91,11 @@ export interface TitanDiagnostic {
   message: string;
   path: string;
   entityId?: string;
+  entityType?: DiagnosticEntityType;
+  tableId?: string;
+  columnId?: string;
+  relationId?: string;
+  indexId?: string;
+  enumId?: string;
+  help?: string;
 }

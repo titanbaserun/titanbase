@@ -25,6 +25,7 @@ export {
   type TitanPosition,
   type TitanSchema,
   type DiagnosticSeverity,
+  type DiagnosticEntityType,
   type TitanDiagnostic,
 } from "./types";
 
@@ -46,3 +47,6 @@ export { normalizeSchema } from "./normalize";
 
 // Factory for a valid blank project.
 export { createEmptySchema, type EmptySchemaOptions } from "./create-empty-schema";
+
+// Shared result contract for pure code exporters.
+export { type ExportFile, type ExportWarning, type ExportResult } from "./export-types";

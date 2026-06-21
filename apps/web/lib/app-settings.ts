@@ -3,7 +3,7 @@ import type { EditorAppSettings, ResolvedTheme, ThemePreference } from "@titanba
 export const APP_SETTINGS_KEY = "titanbase:app-settings";
 
 export const defaultAppSettings: EditorAppSettings = {
-  theme: "system",
+  theme: "light",
   showMinimap: true,
   showGrid: true,
   autoFitViewOnLoad: true,

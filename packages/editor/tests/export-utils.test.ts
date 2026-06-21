@@ -10,5 +10,8 @@ describe("export filenames", () => {
   it("uses target-specific extensions", () => {
     expect(createExportFilename("My Schema", "json")).toBe("my-schema.titan.json");
     expect(createExportFilename("My Schema", "sql")).toBe("my-schema.sql");
+    expect(createExportFilename("My Schema", "mermaid")).toBe("my-schema.mmd");
+    expect(createExportFilename("My Schema", "prisma")).toBe("schema.prisma");
+    expect(createExportFilename("My Schema", "drizzle")).toBe("schema.ts");
   });
 });

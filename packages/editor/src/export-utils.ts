@@ -1,4 +1,4 @@
-export type ExportTarget = "json" | "sql";
+export type ExportTarget = "json" | "sql" | "mermaid" | "prisma" | "drizzle";
 
 export function slugifyExportName(name: string): string {
   return name
@@ -10,5 +10,13 @@ export function slugifyExportName(name: string): string {
 }
 
 export function createExportFilename(projectName: string, target: ExportTarget): string {
-  return `${slugifyExportName(projectName)}.${target === "sql" ? "sql" : "titan.json"}`;
+  const slug = slugifyExportName(projectName);
+  const filenames: Record<ExportTarget, string> = {
+    json: `${slug}.titan.json`,
+    sql: `${slug}.sql`,
+    mermaid: `${slug}.mmd`,
+    prisma: "schema.prisma",
+    drizzle: "schema.ts",
+  };
+  return filenames[target];
 }
