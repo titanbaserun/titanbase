@@ -15,6 +15,7 @@ describe("app settings", () => {
     const storage = memoryStorage();
     expect(loadAppSettings(storage)).toEqual(defaultAppSettings);
     expect(defaultAppSettings.theme).toBe("light");
+    expect(defaultAppSettings.showMinimap).toBe(false);
     const settings = { ...defaultAppSettings, theme: "dark" as const, showGrid: false, inspectorPinned: false, inspectorOpen: false, inspectorHover: false };
     saveAppSettings(settings, storage);
     expect(loadAppSettings(storage)).toEqual(settings);

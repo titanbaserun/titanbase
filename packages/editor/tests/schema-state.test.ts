@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TitanSchema } from "@titanbase/core";
-import { applySchemaMutation, schemaHistoryReducer, type SchemaHistoryState } from "../src/schema-state";
+import { applySchemaMutation, schemaHistoryReducer, selectionForDiagnostic, type SchemaHistoryState } from "../src/schema-state";
 
 const base: TitanSchema = {
   titanVersion: "1.0",
@@ -216,5 +216,12 @@ describe("schemaHistoryReducer", () => {
   it("redo at empty future is no-op", () => {
     const s = schemaHistoryReducer(initial, { type: "redo" });
     expect(s).toBe(initial);
+  });
+});
+
+describe("selectionForDiagnostic", () => {
+  it("uses stable diagnostic entity context before path parsing", () => {
+    expect(selectionForDiagnostic({ code: "relation.issue", severity: "warning", message: "Relation issue", path: "schema", entityType: "relation", entityId: "posts_user", relationId: "posts_user" }, base)).toEqual({ kind: "relation", relationId: "posts_user" });
+    expect(selectionForDiagnostic({ code: "column.issue", severity: "warning", message: "Column issue", path: "schema", entityType: "column", entityId: "posts.user_id", tableId: "posts", columnId: "posts.user_id" }, base)).toEqual({ kind: "column", tableId: "posts", columnId: "posts.user_id" });
   });
 });

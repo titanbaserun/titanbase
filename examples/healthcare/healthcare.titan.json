@@ -27,10 +27,7 @@
         { "id": "doctors.is_active", "name": "is_active", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "true" },
         { "id": "doctors.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "doctors.clinic_idx", "name": "doctors_clinic_idx", "table": "doctors", "columns": ["doctors.clinic_id"], "unique": false },
-        { "id": "doctors.license_idx", "name": "doctors_license_idx", "table": "doctors", "columns": ["doctors.license_number"], "unique": true }
-      ]
+      "indexes": [{ "id": "doctors.clinic_idx", "name": "doctors_clinic_idx", "table": "doctors", "columns": ["doctors.clinic_id"], "unique": false }]
     },
     {
       "id": "patients", "name": "patients", "description": "Registered patients.",
@@ -49,9 +46,7 @@
         { "id": "patients.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
         { "id": "patients.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "patients.name_dob_idx", "name": "patients_name_dob_idx", "table": "patients", "columns": ["patients.last_name", "patients.first_name", "patients.date_of_birth"], "unique": false }
-      ]
+      "indexes": [{ "id": "patients.name_dob_idx", "name": "patients_name_dob_idx", "table": "patients", "columns": ["patients.last_name","patients.first_name","patients.date_of_birth"], "unique": false }]
     },
     {
       "id": "appointments", "name": "appointments", "description": "Scheduled patient visits.",
@@ -67,11 +62,7 @@
         { "id": "appointments.notes", "name": "notes", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "appointments.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "appointments.doctor_schedule_idx", "name": "appointments_doctor_schedule_idx", "table": "appointments", "columns": ["appointments.doctor_id", "appointments.scheduled_at"], "unique": false },
-        { "id": "appointments.patient_idx", "name": "appointments_patient_idx", "table": "appointments", "columns": ["appointments.patient_id"], "unique": false },
-        { "id": "appointments.status_idx", "name": "appointments_status_idx", "table": "appointments", "columns": ["appointments.status"], "unique": false }
-      ]
+      "indexes": [{ "id": "appointments.doctor_schedule_idx", "name": "appointments_doctor_schedule_idx", "table": "appointments", "columns": ["appointments.doctor_id","appointments.scheduled_at"], "unique": false }, { "id": "appointments.patient_idx", "name": "appointments_patient_idx", "table": "appointments", "columns": ["appointments.patient_id"], "unique": false }, { "id": "appointments.status_idx", "name": "appointments_status_idx", "table": "appointments", "columns": ["appointments.status"], "unique": false }, { "id": "appointments.appointments_clinic_id_idx", "name": "appointments_clinic_id_idx", "table": "appointments", "columns": ["appointments.clinic_id"], "unique": false, "method": "btree" }]
     },
     {
       "id": "medical_records", "name": "medical_records", "description": "Clinical notes and diagnoses from visits.",
@@ -86,10 +77,7 @@
         { "id": "medical_records.follow_up_date", "name": "follow_up_date", "type": "date", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "medical_records.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "medical_records.patient_idx", "name": "medical_records_patient_idx", "table": "medical_records", "columns": ["medical_records.patient_id"], "unique": false },
-        { "id": "medical_records.appointment_idx", "name": "medical_records_appointment_idx", "table": "medical_records", "columns": ["medical_records.appointment_id"], "unique": true }
-      ]
+      "indexes": [{ "id": "medical_records.patient_idx", "name": "medical_records_patient_idx", "table": "medical_records", "columns": ["medical_records.patient_id"], "unique": false }, { "id": "medical_records.medical_records_doctor_id_idx", "name": "medical_records_doctor_id_idx", "table": "medical_records", "columns": ["medical_records.doctor_id"], "unique": false, "method": "btree" }]
     },
     {
       "id": "prescriptions", "name": "prescriptions", "description": "Medications prescribed during visits.",
@@ -103,9 +91,7 @@
         { "id": "prescriptions.notes", "name": "notes", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "prescriptions.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "prescriptions.record_idx", "name": "prescriptions_record_idx", "table": "prescriptions", "columns": ["prescriptions.record_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "prescriptions.record_idx", "name": "prescriptions_record_idx", "table": "prescriptions", "columns": ["prescriptions.record_id"], "unique": false }]
     },
     {
       "id": "audit_log", "name": "audit_log", "description": "Immutable log of access to sensitive patient data.",
@@ -118,11 +104,7 @@
         { "id": "audit_log.resource_id", "name": "resource_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
         { "id": "audit_log.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "audit_log.patient_idx", "name": "audit_log_patient_idx", "table": "audit_log", "columns": ["audit_log.patient_id"], "unique": false },
-        { "id": "audit_log.actor_idx", "name": "audit_log_actor_idx", "table": "audit_log", "columns": ["audit_log.actor_id"], "unique": false },
-        { "id": "audit_log.created_at_idx", "name": "audit_log_created_at_idx", "table": "audit_log", "columns": ["audit_log.created_at"], "unique": false }
-      ]
+      "indexes": [{ "id": "audit_log.patient_idx", "name": "audit_log_patient_idx", "table": "audit_log", "columns": ["audit_log.patient_id"], "unique": false }, { "id": "audit_log.actor_idx", "name": "audit_log_actor_idx", "table": "audit_log", "columns": ["audit_log.actor_id"], "unique": false }, { "id": "audit_log.created_at_idx", "name": "audit_log_created_at_idx", "table": "audit_log", "columns": ["audit_log.created_at"], "unique": false }]
     }
   ],
   "enums": [

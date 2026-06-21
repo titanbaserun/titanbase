@@ -7,19 +7,19 @@
       { "id": "customers.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true },
       { "id": "customers.email", "name": "email", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
       { "id": "customers.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false }
-    ], "indexes": [{ "id": "customers.email_idx", "name": "customers_email_idx", "table": "customers", "columns": ["customers.email"], "unique": true }] },
+    ], "indexes": [] },
     { "id": "products", "name": "products", "description": "Products available for sale.", "columns": [
       { "id": "products.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true },
       { "id": "products.sku", "name": "sku", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
       { "id": "products.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
       { "id": "products.price", "name": "price", "type": "numeric", "nativeType": "numeric(12,2)", "nullable": false, "primaryKey": false, "unique": false }
-    ], "indexes": [{ "id": "products.sku_idx", "name": "products_sku_idx", "table": "products", "columns": ["products.sku"], "unique": true }] },
+    ], "indexes": [] },
     { "id": "orders", "name": "orders", "description": "Customer orders.", "columns": [
       { "id": "orders.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true },
       { "id": "orders.customer_id", "name": "customer_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
       { "id": "orders.product_id", "name": "product_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
       { "id": "orders.quantity", "name": "quantity", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "1" }
-    ], "indexes": [{ "id": "orders.customer_idx", "name": "orders_customer_idx", "table": "orders", "columns": ["orders.customer_id"], "unique": false }] }
+    ], "indexes": [{ "id": "orders.customer_idx", "name": "orders_customer_idx", "table": "orders", "columns": ["orders.customer_id"], "unique": false }, { "id": "orders.orders_product_id_idx", "name": "orders_product_id_idx", "table": "orders", "columns": ["orders.product_id"], "unique": false, "method": "btree" }] }
   ],
   "enums": [],
   "relations": [

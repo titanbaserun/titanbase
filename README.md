@@ -21,6 +21,18 @@ pnpm typecheck    # TypeScript checks
 pnpm test         # Run all tests
 ```
 
+## Diagnostics
+
+Titanbase validates schemas locally before export. Errors identify broken or unsafe schema structure that should be fixed. Warnings highlight portability, indexing, naming, and default-value risks. Info messages describe limitations that may require adjustments in ORM exporters. Diagnostics include stable codes and entity references so the editor can open the related table, column, relation, index, or enum.
+
+Exporter warnings remain target-specific: core diagnostics explain general schema risks, while each exporter reports features it cannot represent exactly.
+
+## PostgreSQL SQL import
+
+Titanbase can import a local PostgreSQL `.sql` schema file directly in the browser. The MVP supports enums, tables, primary and unique constraints, inline and table-level foreign keys, indexes, comments, defaults, quoted identifiers, and basic namespaces. Unsupported statements are skipped with line-aware import warnings instead of blocking the supported schema.
+
+SQL import is a local file conversion workflow. Titanbase does not connect to a live database, request credentials, execute migrations, or upload the selected file.
+
 ## Packages
 
 | Package | Description | Status |
@@ -31,6 +43,7 @@ pnpm test         # Run all tests
 | `@titanbase/export-mermaid` | Mermaid ER diagram generator | Workspace package |
 | `@titanbase/export-prisma` | Prisma schema generator | Workspace package |
 | `@titanbase/export-drizzle` | Drizzle PostgreSQL schema generator | Workspace package |
+| `@titanbase/import-postgres` | PostgreSQL DDL to normalized `TitanSchema` importer | Workspace package |
 | `@titanbase/ui` | Shared UI primitives | Workspace package |
 
 `apps/web` is the local editor host app (Next.js, not published to npm).
@@ -53,6 +66,7 @@ import { SchemaEditor } from "@titanbase/editor";
 - Create and edit schemas visually
 - Tables, columns, relations, indexes, enums
 - Save/load `.titan.json` files
+- Import local PostgreSQL `.sql` schema files
 - Export Titan JSON
 - Export PostgreSQL SQL
 - Export Mermaid ER diagrams
@@ -63,7 +77,6 @@ import { SchemaEditor } from "@titanbase/editor";
 - Undo/redo, keyboard shortcuts, dark mode
 - CLI (planned)
 - Export to DBML (planned)
-- Import from `.sql` file (planned)
 - Store in Git
 
 **Possible future / Titanbase Cloud (not implemented)** — potential team and enterprise value:
@@ -89,6 +102,7 @@ packages/
   export-mermaid/    Mermaid ER diagram generator
   export-postgres/   PostgreSQL DDL code generator
   export-prisma/     Prisma schema generator
+  import-postgres/   Local PostgreSQL DDL importer
   ui/                Button, Input, Select, Badge, etc.
 apps/
   web/               Local editor host app (Next.js, not a published package)
@@ -109,6 +123,11 @@ examples/            Sample schemas (blog, ecommerce, saas, messaging, PM)
    │  Canvas + Inspector   │   │  Postgres · Mermaid      │
    │  Mutation engine      │   │  Prisma · Drizzle        │
    └───────────┬───────────┘   └─────────────────────────┘
+               │                          ▲
+               │              ┌──────────┴──────────────┐
+               │              │ @titanbase/import-      │
+               │              │ postgres · local DDL    │
+               │              └─────────────────────────┘
                │
    ┌───────────▼───────────┐
    │  @titanbase/web        │   ← open source host app

@@ -21,10 +21,7 @@
         { "id": "profiles.following_count", "name": "following_count", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" },
         { "id": "profiles.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "profiles.username_idx", "name": "profiles_username_idx", "table": "profiles", "columns": ["profiles.username"], "unique": true },
-        { "id": "profiles.email_idx", "name": "profiles_email_idx", "table": "profiles", "columns": ["profiles.email"], "unique": true }
-      ]
+      "indexes": []
     },
     {
       "id": "follows", "name": "follows", "description": "Follow relationships between users.",
@@ -33,9 +30,7 @@
         { "id": "follows.following_id", "name": "following_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
         { "id": "follows.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "follows.following_idx", "name": "follows_following_idx", "table": "follows", "columns": ["follows.following_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "follows.following_idx", "name": "follows_following_idx", "table": "follows", "columns": ["follows.following_id"], "unique": false }, { "id": "follows.follows_follower_id_idx", "name": "follows_follower_id_idx", "table": "follows", "columns": ["follows.follower_id"], "unique": false, "method": "btree" }]
     },
     {
       "id": "posts", "name": "posts", "description": "User-generated content posts.",
@@ -53,11 +48,7 @@
         { "id": "posts.deleted_at", "name": "deleted_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "posts.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "posts.author_idx", "name": "posts_author_idx", "table": "posts", "columns": ["posts.author_id", "posts.created_at"], "unique": false, "method": "btree" },
-        { "id": "posts.reply_idx", "name": "posts_reply_idx", "table": "posts", "columns": ["posts.reply_to_id"], "unique": false, "where": "reply_to_id IS NOT NULL" },
-        { "id": "posts.created_at_idx", "name": "posts_created_at_idx", "table": "posts", "columns": ["posts.created_at"], "unique": false }
-      ]
+      "indexes": [{ "id": "posts.author_idx", "name": "posts_author_idx", "table": "posts", "columns": ["posts.author_id","posts.created_at"], "unique": false, "method": "btree" }, { "id": "posts.reply_idx", "name": "posts_reply_idx", "table": "posts", "columns": ["posts.reply_to_id"], "unique": false, "where": "reply_to_id IS NOT NULL" }, { "id": "posts.created_at_idx", "name": "posts_created_at_idx", "table": "posts", "columns": ["posts.created_at"], "unique": false }, { "id": "posts.posts_repost_of_id_idx", "name": "posts_repost_of_id_idx", "table": "posts", "columns": ["posts.repost_of_id"], "unique": false, "method": "btree" }]
     },
     {
       "id": "likes", "name": "likes", "description": "Post likes by users.",
@@ -66,9 +57,7 @@
         { "id": "likes.post_id", "name": "post_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
         { "id": "likes.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "likes.post_idx", "name": "likes_post_idx", "table": "likes", "columns": ["likes.post_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "likes.post_idx", "name": "likes_post_idx", "table": "likes", "columns": ["likes.post_id"], "unique": false }, { "id": "likes.likes_user_id_idx", "name": "likes_user_id_idx", "table": "likes", "columns": ["likes.user_id"], "unique": false, "method": "btree" }]
     },
     {
       "id": "bookmarks", "name": "bookmarks", "description": "Saved posts for later reading.",
@@ -77,7 +66,7 @@
         { "id": "bookmarks.post_id", "name": "post_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
         { "id": "bookmarks.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": []
+      "indexes": [{ "id": "bookmarks.bookmarks_user_id_idx", "name": "bookmarks_user_id_idx", "table": "bookmarks", "columns": ["bookmarks.user_id"], "unique": false, "method": "btree" }, { "id": "bookmarks.bookmarks_post_id_idx", "name": "bookmarks_post_id_idx", "table": "bookmarks", "columns": ["bookmarks.post_id"], "unique": false, "method": "btree" }]
     },
     {
       "id": "hashtags", "name": "hashtags", "description": "Trending topic tags.",
@@ -86,9 +75,7 @@
         { "id": "hashtags.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": true, "description": "Lowercase tag without the # symbol." },
         { "id": "hashtags.post_count", "name": "post_count", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0" }
       ],
-      "indexes": [
-        { "id": "hashtags.name_idx", "name": "hashtags_name_idx", "table": "hashtags", "columns": ["hashtags.name"], "unique": true }
-      ]
+      "indexes": []
     },
     {
       "id": "post_hashtags", "name": "post_hashtags", "description": "Many-to-many: posts to hashtags.",
@@ -96,9 +83,7 @@
         { "id": "post_hashtags.post_id", "name": "post_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
         { "id": "post_hashtags.hashtag_id", "name": "hashtag_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false }
       ],
-      "indexes": [
-        { "id": "post_hashtags.hashtag_idx", "name": "post_hashtags_hashtag_idx", "table": "post_hashtags", "columns": ["post_hashtags.hashtag_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "post_hashtags.hashtag_idx", "name": "post_hashtags_hashtag_idx", "table": "post_hashtags", "columns": ["post_hashtags.hashtag_id"], "unique": false }, { "id": "post_hashtags.post_hashtags_post_id_idx", "name": "post_hashtags_post_id_idx", "table": "post_hashtags", "columns": ["post_hashtags.post_id"], "unique": false, "method": "btree" }]
     },
     {
       "id": "notifications", "name": "notifications", "description": "In-app notification feed.",
@@ -111,10 +96,7 @@
         { "id": "notifications.is_read", "name": "is_read", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "false" },
         { "id": "notifications.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "notifications.recipient_idx", "name": "notifications_recipient_idx", "table": "notifications", "columns": ["notifications.recipient_id", "notifications.created_at"], "unique": false, "method": "btree" },
-        { "id": "notifications.unread_idx", "name": "notifications_unread_idx", "table": "notifications", "columns": ["notifications.recipient_id", "notifications.is_read"], "unique": false, "where": "is_read = false" }
-      ]
+      "indexes": [{ "id": "notifications.recipient_idx", "name": "notifications_recipient_idx", "table": "notifications", "columns": ["notifications.recipient_id","notifications.created_at"], "unique": false, "method": "btree" }, { "id": "notifications.unread_idx", "name": "notifications_unread_idx", "table": "notifications", "columns": ["notifications.recipient_id","notifications.is_read"], "unique": false, "where": "is_read = false" }, { "id": "notifications.notifications_actor_id_idx", "name": "notifications_actor_id_idx", "table": "notifications", "columns": ["notifications.actor_id"], "unique": false, "method": "btree" }]
     }
   ],
   "enums": [

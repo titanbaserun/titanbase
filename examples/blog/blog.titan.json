@@ -11,7 +11,7 @@
         { "id": "users.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
         { "id": "users.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [{ "id": "users.email_idx", "name": "users_email_idx", "table": "users", "columns": ["users.email"], "unique": true }]
+      "indexes": []
     },
     {
       "id": "posts", "name": "posts", "description": "Blog posts authored by users.",
@@ -23,7 +23,7 @@
         { "id": "posts.content", "name": "content", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "posts.published_at", "name": "published_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false }
       ],
-      "indexes": [{ "id": "posts.slug_idx", "name": "posts_slug_idx", "table": "posts", "columns": ["posts.slug"], "unique": true }]
+      "indexes": [{ "id": "posts.posts_author_id_idx", "name": "posts_author_id_idx", "table": "posts", "columns": ["posts.author_id"], "unique": false, "method": "btree" }]
     },
     {
       "id": "comments", "name": "comments", "description": "Reader comments left on posts.",
@@ -33,7 +33,7 @@
         { "id": "comments.author_id", "name": "author_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": false },
         { "id": "comments.body", "name": "body", "type": "text", "nullable": false, "primaryKey": false, "unique": false }
       ],
-      "indexes": [{ "id": "comments.post_idx", "name": "comments_post_idx", "table": "comments", "columns": ["comments.post_id"], "unique": false }]
+      "indexes": [{ "id": "comments.post_idx", "name": "comments_post_idx", "table": "comments", "columns": ["comments.post_id"], "unique": false }, { "id": "comments.comments_author_id_idx", "name": "comments_author_id_idx", "table": "comments", "columns": ["comments.author_id"], "unique": false, "method": "btree" }]
     }
   ],
   "enums": [],

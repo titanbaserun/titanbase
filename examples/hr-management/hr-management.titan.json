@@ -13,9 +13,7 @@
         { "id": "departments.head_id", "name": "head_id", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "departments.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "departments.code_idx", "name": "departments_code_idx", "table": "departments", "columns": ["departments.code"], "unique": true }
-      ]
+      "indexes": [{ "id": "departments.departments_parent_id_idx", "name": "departments_parent_id_idx", "table": "departments", "columns": ["departments.parent_id"], "unique": false, "method": "btree" }, { "id": "departments.departments_head_id_idx", "name": "departments_head_id_idx", "table": "departments", "columns": ["departments.head_id"], "unique": false, "method": "btree" }]
     },
     {
       "id": "positions", "name": "positions", "description": "Job titles and role definitions.",
@@ -28,9 +26,7 @@
         { "id": "positions.max_salary", "name": "max_salary", "type": "numeric", "nativeType": "numeric(12,2)", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "positions.is_active", "name": "is_active", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "true" }
       ],
-      "indexes": [
-        { "id": "positions.department_idx", "name": "positions_department_idx", "table": "positions", "columns": ["positions.department_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "positions.department_idx", "name": "positions_department_idx", "table": "positions", "columns": ["positions.department_id"], "unique": false }]
     },
     {
       "id": "employees", "name": "employees", "description": "Company employees.",
@@ -52,12 +48,7 @@
         { "id": "employees.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
         { "id": "employees.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "employees.employee_number_idx", "name": "employees_employee_number_idx", "table": "employees", "columns": ["employees.employee_number"], "unique": true },
-        { "id": "employees.email_idx", "name": "employees_email_idx", "table": "employees", "columns": ["employees.email"], "unique": true },
-        { "id": "employees.department_idx", "name": "employees_department_idx", "table": "employees", "columns": ["employees.department_id"], "unique": false },
-        { "id": "employees.manager_idx", "name": "employees_manager_idx", "table": "employees", "columns": ["employees.manager_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "employees.department_idx", "name": "employees_department_idx", "table": "employees", "columns": ["employees.department_id"], "unique": false }, { "id": "employees.manager_idx", "name": "employees_manager_idx", "table": "employees", "columns": ["employees.manager_id"], "unique": false }, { "id": "employees.employees_position_id_idx", "name": "employees_position_id_idx", "table": "employees", "columns": ["employees.position_id"], "unique": false, "method": "btree" }]
     },
     {
       "id": "compensation", "name": "compensation", "description": "Salary and compensation history.",
@@ -70,9 +61,7 @@
         { "id": "compensation.reason", "name": "reason", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "compensation.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "compensation.employee_date_idx", "name": "compensation_employee_date_idx", "table": "compensation", "columns": ["compensation.employee_id", "compensation.effective_date"], "unique": true }
-      ]
+      "indexes": [{ "id": "compensation.employee_date_idx", "name": "compensation_employee_date_idx", "table": "compensation", "columns": ["compensation.employee_id","compensation.effective_date"], "unique": true }]
     },
     {
       "id": "leave_requests", "name": "leave_requests", "description": "Time-off and vacation requests.",
@@ -88,10 +77,7 @@
         { "id": "leave_requests.approved_by", "name": "approved_by", "type": "uuid", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "leave_requests.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "leave_requests.employee_idx", "name": "leave_requests_employee_idx", "table": "leave_requests", "columns": ["leave_requests.employee_id"], "unique": false },
-        { "id": "leave_requests.status_idx", "name": "leave_requests_status_idx", "table": "leave_requests", "columns": ["leave_requests.status"], "unique": false }
-      ]
+      "indexes": [{ "id": "leave_requests.employee_idx", "name": "leave_requests_employee_idx", "table": "leave_requests", "columns": ["leave_requests.employee_id"], "unique": false }, { "id": "leave_requests.status_idx", "name": "leave_requests_status_idx", "table": "leave_requests", "columns": ["leave_requests.status"], "unique": false }, { "id": "leave_requests.leave_requests_approved_by_idx", "name": "leave_requests_approved_by_idx", "table": "leave_requests", "columns": ["leave_requests.approved_by"], "unique": false, "method": "btree" }]
     },
     {
       "id": "performance_reviews", "name": "performance_reviews", "description": "Annual or quarterly performance evaluations.",
@@ -107,9 +93,7 @@
         { "id": "performance_reviews.status", "name": "status", "type": "review_status", "nullable": false, "primaryKey": false, "unique": false, "default": "'draft'" },
         { "id": "performance_reviews.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "performance_reviews.employee_period_idx", "name": "performance_reviews_employee_period_idx", "table": "performance_reviews", "columns": ["performance_reviews.employee_id", "performance_reviews.period_start"], "unique": false }
-      ]
+      "indexes": [{ "id": "performance_reviews.employee_period_idx", "name": "performance_reviews_employee_period_idx", "table": "performance_reviews", "columns": ["performance_reviews.employee_id","performance_reviews.period_start"], "unique": false }, { "id": "performance_reviews.performance_reviews_reviewer_id_idx", "name": "performance_reviews_reviewer_id_idx", "table": "performance_reviews", "columns": ["performance_reviews.reviewer_id"], "unique": false, "method": "btree" }]
     }
   ],
   "enums": [

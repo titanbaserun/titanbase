@@ -13,9 +13,7 @@
         { "id": "users.is_active", "name": "is_active", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "true" },
         { "id": "users.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "users.email_idx", "name": "users_email_idx", "table": "users", "columns": ["users.email"], "unique": true }
-      ]
+      "indexes": []
     },
     {
       "id": "companies", "name": "companies", "description": "Organizations that contacts belong to.",
@@ -29,10 +27,7 @@
         { "id": "companies.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
         { "id": "companies.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "companies.domain_idx", "name": "companies_domain_idx", "table": "companies", "columns": ["companies.domain"], "unique": true },
-        { "id": "companies.owner_idx", "name": "companies_owner_idx", "table": "companies", "columns": ["companies.owner_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "companies.owner_idx", "name": "companies_owner_idx", "table": "companies", "columns": ["companies.owner_id"], "unique": false }]
     },
     {
       "id": "contacts", "name": "contacts", "description": "Individual people associated with companies.",
@@ -49,11 +44,7 @@
         { "id": "contacts.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
         { "id": "contacts.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "contacts.company_idx", "name": "contacts_company_idx", "table": "contacts", "columns": ["contacts.company_id"], "unique": false },
-        { "id": "contacts.email_idx", "name": "contacts_email_idx", "table": "contacts", "columns": ["contacts.email"], "unique": false },
-        { "id": "contacts.owner_idx", "name": "contacts_owner_idx", "table": "contacts", "columns": ["contacts.owner_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "contacts.company_idx", "name": "contacts_company_idx", "table": "contacts", "columns": ["contacts.company_id"], "unique": false }, { "id": "contacts.email_idx", "name": "contacts_email_idx", "table": "contacts", "columns": ["contacts.email"], "unique": false }, { "id": "contacts.owner_idx", "name": "contacts_owner_idx", "table": "contacts", "columns": ["contacts.owner_id"], "unique": false }]
     },
     {
       "id": "pipelines", "name": "pipelines", "description": "Sales pipelines representing different sales processes.",
@@ -74,9 +65,7 @@
         { "id": "pipeline_stages.position", "name": "position", "type": "integer", "nullable": false, "primaryKey": false, "unique": false },
         { "id": "pipeline_stages.win_probability", "name": "win_probability", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "0", "description": "Probability percentage 0-100." }
       ],
-      "indexes": [
-        { "id": "pipeline_stages.pipeline_position_idx", "name": "pipeline_stages_pipeline_position_idx", "table": "pipeline_stages", "columns": ["pipeline_stages.pipeline_id", "pipeline_stages.position"], "unique": true }
-      ]
+      "indexes": [{ "id": "pipeline_stages.pipeline_position_idx", "name": "pipeline_stages_pipeline_position_idx", "table": "pipeline_stages", "columns": ["pipeline_stages.pipeline_id","pipeline_stages.position"], "unique": true }]
     },
     {
       "id": "deals", "name": "deals", "description": "Revenue opportunities tracked through pipeline stages.",
@@ -96,12 +85,7 @@
         { "id": "deals.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
         { "id": "deals.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "deals.pipeline_idx", "name": "deals_pipeline_idx", "table": "deals", "columns": ["deals.pipeline_id"], "unique": false },
-        { "id": "deals.stage_idx", "name": "deals_stage_idx", "table": "deals", "columns": ["deals.stage_id"], "unique": false },
-        { "id": "deals.owner_idx", "name": "deals_owner_idx", "table": "deals", "columns": ["deals.owner_id"], "unique": false },
-        { "id": "deals.status_idx", "name": "deals_status_idx", "table": "deals", "columns": ["deals.status"], "unique": false }
-      ]
+      "indexes": [{ "id": "deals.pipeline_idx", "name": "deals_pipeline_idx", "table": "deals", "columns": ["deals.pipeline_id"], "unique": false }, { "id": "deals.stage_idx", "name": "deals_stage_idx", "table": "deals", "columns": ["deals.stage_id"], "unique": false }, { "id": "deals.owner_idx", "name": "deals_owner_idx", "table": "deals", "columns": ["deals.owner_id"], "unique": false }, { "id": "deals.status_idx", "name": "deals_status_idx", "table": "deals", "columns": ["deals.status"], "unique": false }, { "id": "deals.deals_contact_id_idx", "name": "deals_contact_id_idx", "table": "deals", "columns": ["deals.contact_id"], "unique": false, "method": "btree" }, { "id": "deals.deals_company_id_idx", "name": "deals_company_id_idx", "table": "deals", "columns": ["deals.company_id"], "unique": false, "method": "btree" }]
     },
     {
       "id": "activities", "name": "activities", "description": "Logged interactions such as calls, emails, and meetings.",
@@ -116,11 +100,7 @@
         { "id": "activities.performed_at", "name": "performed_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
         { "id": "activities.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "activities.contact_idx", "name": "activities_contact_idx", "table": "activities", "columns": ["activities.contact_id"], "unique": false },
-        { "id": "activities.deal_idx", "name": "activities_deal_idx", "table": "activities", "columns": ["activities.deal_id"], "unique": false },
-        { "id": "activities.performed_by_idx", "name": "activities_performed_by_idx", "table": "activities", "columns": ["activities.performed_by"], "unique": false }
-      ]
+      "indexes": [{ "id": "activities.contact_idx", "name": "activities_contact_idx", "table": "activities", "columns": ["activities.contact_id"], "unique": false }, { "id": "activities.deal_idx", "name": "activities_deal_idx", "table": "activities", "columns": ["activities.deal_id"], "unique": false }, { "id": "activities.performed_by_idx", "name": "activities_performed_by_idx", "table": "activities", "columns": ["activities.performed_by"], "unique": false }]
     },
     {
       "id": "tags", "name": "tags", "description": "Freeform tags for contacts and deals.",
@@ -136,9 +116,7 @@
         { "id": "contact_tags.contact_id", "name": "contact_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
         { "id": "contact_tags.tag_id", "name": "tag_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false }
       ],
-      "indexes": [
-        { "id": "contact_tags.tag_idx", "name": "contact_tags_tag_idx", "table": "contact_tags", "columns": ["contact_tags.tag_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "contact_tags.tag_idx", "name": "contact_tags_tag_idx", "table": "contact_tags", "columns": ["contact_tags.tag_id"], "unique": false }, { "id": "contact_tags.contact_tags_contact_id_idx", "name": "contact_tags_contact_id_idx", "table": "contact_tags", "columns": ["contact_tags.contact_id"], "unique": false, "method": "btree" }]
     }
   ],
   "enums": [

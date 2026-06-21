@@ -19,7 +19,8 @@ This roadmap describes the current direction, not a fixed release schedule. Prio
 - [ ] Harden the local editor UX and validation.
 - [x] Add Mermaid, Prisma, and Drizzle exporters with focused tests.
 - [ ] Document the `.titan.json` format.
-- [ ] Add SQL import and schema diff foundations.
+- [x] Add the first local PostgreSQL SQL import foundation.
+- [ ] Add schema diff foundations.
 - [ ] Package the proven local workflow as a desktop application.
 - [ ] Add CLI and automation workflows after the public APIs stabilize.
 
@@ -83,6 +84,10 @@ This roadmap describes the current direction, not a fixed release schedule. Prio
 - [x] Compact schema status and validation bar.
 - [x] Light, dark, and system theme preferences.
 - [x] Theme-aware canvas, panels, badges, relations, and code previews.
+- [x] Balanced, uniform start screen action cards with call-to-action affordances.
+- [x] Responsive editor and start screen layout for small and touch screens.
+- [x] Touch-friendly canvas panning and zoom on mobile devices.
+- [x] Quick access link to the main Titanbase website from the editor and start screen.
 
 ### Validation and Export
 
@@ -93,10 +98,10 @@ This roadmap describes the current direction, not a fixed release schedule. Prio
 - [x] PostgreSQL relations, enums, indexes, defaults, comments, and constraints.
 - [x] Export warnings and validation status.
 - [x] Slugified export filenames.
-- [ ] Add advanced relation diagnostics.
-- [ ] Add dialect-specific type and default diagnostics.
-- [ ] Detect unsafe or contradictory constraints.
-- [ ] Improve diagnostics for composite keys and composite relations.
+- [x] Add advanced relation diagnostics.
+- [x] Add dialect-specific type and default diagnostics.
+- [x] Detect unsafe or contradictory constraints.
+- [x] Improve diagnostics for composite keys and composite relations.
 - [x] Export Mermaid ERD.
 - [x] Export Prisma schema.
 - [x] Export Drizzle schema.
@@ -132,11 +137,11 @@ This roadmap describes the current direction, not a fixed release schedule. Prio
 
 ### Import
 
-- [ ] Import PostgreSQL from a `.sql` file.
-- [ ] Convert imported SQL into normalized `TitanSchema` objects.
-- [ ] Show unsupported SQL statements and import warnings.
+- [x] Import PostgreSQL from a `.sql` file.
+- [x] Convert imported SQL into normalized `TitanSchema` objects.
+- [x] Show unsupported SQL statements and import warnings.
 - [ ] Drag and drop `.titan.json` and `.sql` files in the web editor.
-- [ ] Preserve comments, defaults, indexes, enums, and referential actions where possible.
+- [x] Preserve comments, defaults, indexes, enums, and referential actions where possible.
 
 ### Diff and Migration Foundations
 

@@ -1,6 +1,6 @@
 {
   "name": "titanbase",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Visual database schema editor with portable JSON schema format.",
   "license": "Apache-2.0",

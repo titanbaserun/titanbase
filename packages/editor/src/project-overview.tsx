@@ -1,4 +1,4 @@
-import { BracketsCurly, CheckCircle, Database, FolderOpen, Link, Plus, Table, WarningCircle } from "@phosphor-icons/react";
+import { BracketsCurly, CheckCircle, Database, FileSql, FolderOpen, Link, Plus, Table, WarningCircle } from "@phosphor-icons/react";
 import type { TitanDiagnostic, TitanDialect, TitanSchema } from "@titanbase/core";
 import { Button, Input, Select, Textarea } from "@titanbase/ui";
 import { getSchemaStatistics } from "./schema-visuals";
@@ -15,6 +15,7 @@ interface ProjectOverviewProps {
   onAddEnum: () => void;
   onExport: (tab: ExportTarget) => void;
   onOpen: () => void;
+  onImportSql: () => void;
   onTemplates: () => void;
 }
 
@@ -46,6 +47,7 @@ export function ProjectOverview(props: ProjectOverviewProps) {
       <Button onClick={props.onAddEnum}><Database size={16} /> Add enum</Button>
       <Button onClick={() => props.onExport("json")}><BracketsCurly size={16} /> Export schema</Button>
       <Button onClick={props.onOpen}><FolderOpen size={16} /> Open JSON</Button>
+      <Button onClick={props.onImportSql}><FileSql size={16} /> Import SQL</Button>
       <Button onClick={props.onTemplates}><Table size={16} /> Use template</Button>
     </div></div>
   </div>;

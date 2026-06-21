@@ -12,9 +12,7 @@
         { "id": "projects.domain", "name": "domain", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "projects.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "projects.api_key_idx", "name": "projects_api_key_idx", "table": "projects", "columns": ["projects.api_key"], "unique": true }
-      ]
+      "indexes": []
     },
     {
       "id": "users", "name": "users", "description": "Identified end-users from client applications.",
@@ -27,9 +25,7 @@
         { "id": "users.first_seen_at", "name": "first_seen_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
         { "id": "users.last_seen_at", "name": "last_seen_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "users.project_external_idx", "name": "users_project_external_idx", "table": "users", "columns": ["users.project_id", "users.external_id"], "unique": true }
-      ]
+      "indexes": [{ "id": "users.project_external_idx", "name": "users_project_external_idx", "table": "users", "columns": ["users.project_id","users.external_id"], "unique": true }]
     },
     {
       "id": "sessions", "name": "sessions", "description": "Browsing sessions grouping events.",
@@ -49,10 +45,7 @@
         { "id": "sessions.device_type", "name": "device_type", "type": "device_type", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "sessions.browser", "name": "browser", "type": "text", "nullable": true, "primaryKey": false, "unique": false }
       ],
-      "indexes": [
-        { "id": "sessions.project_started_idx", "name": "sessions_project_started_idx", "table": "sessions", "columns": ["sessions.project_id", "sessions.started_at"], "unique": false, "method": "btree" },
-        { "id": "sessions.user_idx", "name": "sessions_user_idx", "table": "sessions", "columns": ["sessions.user_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "sessions.project_started_idx", "name": "sessions_project_started_idx", "table": "sessions", "columns": ["sessions.project_id","sessions.started_at"], "unique": false, "method": "btree" }, { "id": "sessions.user_idx", "name": "sessions_user_idx", "table": "sessions", "columns": ["sessions.user_id"], "unique": false }]
     },
     {
       "id": "events", "name": "events", "description": "Raw tracked events (page views, clicks, custom).",
@@ -66,11 +59,7 @@
         { "id": "events.page_url", "name": "page_url", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "events.timestamp", "name": "timestamp", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "events.project_timestamp_idx", "name": "events_project_timestamp_idx", "table": "events", "columns": ["events.project_id", "events.timestamp"], "unique": false, "method": "btree" },
-        { "id": "events.name_idx", "name": "events_name_idx", "table": "events", "columns": ["events.project_id", "events.name"], "unique": false },
-        { "id": "events.session_idx", "name": "events_session_idx", "table": "events", "columns": ["events.session_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "events.project_timestamp_idx", "name": "events_project_timestamp_idx", "table": "events", "columns": ["events.project_id","events.timestamp"], "unique": false, "method": "btree" }, { "id": "events.name_idx", "name": "events_name_idx", "table": "events", "columns": ["events.project_id","events.name"], "unique": false }, { "id": "events.session_idx", "name": "events_session_idx", "table": "events", "columns": ["events.session_id"], "unique": false }, { "id": "events.events_user_id_idx", "name": "events_user_id_idx", "table": "events", "columns": ["events.user_id"], "unique": false, "method": "btree" }]
     },
     {
       "id": "funnels", "name": "funnels", "description": "Defined conversion funnels.",
@@ -80,9 +69,7 @@
         { "id": "funnels.name", "name": "name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
         { "id": "funnels.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "funnels.project_idx", "name": "funnels_project_idx", "table": "funnels", "columns": ["funnels.project_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "funnels.project_idx", "name": "funnels_project_idx", "table": "funnels", "columns": ["funnels.project_id"], "unique": false }]
     },
     {
       "id": "funnel_steps", "name": "funnel_steps", "description": "Ordered steps in a funnel.",
@@ -92,9 +79,7 @@
         { "id": "funnel_steps.event_name", "name": "event_name", "type": "text", "nullable": false, "primaryKey": false, "unique": false },
         { "id": "funnel_steps.position", "name": "position", "type": "integer", "nullable": false, "primaryKey": false, "unique": false }
       ],
-      "indexes": [
-        { "id": "funnel_steps.funnel_position_idx", "name": "funnel_steps_funnel_position_idx", "table": "funnel_steps", "columns": ["funnel_steps.funnel_id", "funnel_steps.position"], "unique": true }
-      ]
+      "indexes": [{ "id": "funnel_steps.funnel_position_idx", "name": "funnel_steps_funnel_position_idx", "table": "funnel_steps", "columns": ["funnel_steps.funnel_id","funnel_steps.position"], "unique": true }]
     },
     {
       "id": "dashboards", "name": "dashboards", "description": "Custom analytics dashboards.",
@@ -105,9 +90,7 @@
         { "id": "dashboards.is_default", "name": "is_default", "type": "boolean", "nullable": false, "primaryKey": false, "unique": false, "default": "false" },
         { "id": "dashboards.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "dashboards.project_idx", "name": "dashboards_project_idx", "table": "dashboards", "columns": ["dashboards.project_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "dashboards.project_idx", "name": "dashboards_project_idx", "table": "dashboards", "columns": ["dashboards.project_id"], "unique": false }]
     },
     {
       "id": "widgets", "name": "widgets", "description": "Chart widgets placed on dashboards.",
@@ -122,9 +105,7 @@
         { "id": "widgets.width", "name": "width", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "4" },
         { "id": "widgets.height", "name": "height", "type": "integer", "nullable": false, "primaryKey": false, "unique": false, "default": "3" }
       ],
-      "indexes": [
-        { "id": "widgets.dashboard_idx", "name": "widgets_dashboard_idx", "table": "widgets", "columns": ["widgets.dashboard_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "widgets.dashboard_idx", "name": "widgets_dashboard_idx", "table": "widgets", "columns": ["widgets.dashboard_id"], "unique": false }]
     }
   ],
   "enums": [

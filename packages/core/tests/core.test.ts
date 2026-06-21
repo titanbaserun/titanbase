@@ -55,6 +55,18 @@ describe("TitanSchema validation", () => {
     });
   }
 
+  it("keeps template warnings intentional", () => {
+    const summary: Record<string, string[]> = {};
+    for (const example of loadExampleSchemas()) {
+      const codes = diagnoseSchema(example.schema).filter((diagnostic) => diagnostic.severity !== "error").map((diagnostic) => diagnostic.code);
+      if (codes.length) summary[example.name] = codes;
+    }
+    expect(summary).toEqual({
+      "ai-model-registry/ai-model-registry": ["enum.unsafe-value"],
+      "crm/crm": ["column.nullable-unique"],
+    });
+  });
+
   // --- Normalization ---
   it("validates and normalizes a valid schema", () => {
     expect(validateTitanSchema(validSchema).success).toBe(true);
@@ -183,8 +195,7 @@ describe("TitanSchema validation", () => {
 
   describe("project diagnostics", () => {
     it("reports a missing project name", () => {
-      const schema = structuredClone(validSchema) as TitanSchema & { project: { id: string; name?: string } };
-      delete schema.project.name;
+      const schema = { ...structuredClone(validSchema), project: { id: validSchema.project.id } };
       expect(diagnosticCodes(schema)).toContain("project.missing-name");
     });
 

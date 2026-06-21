@@ -1,4 +1,4 @@
-import { ArrowLeft, BookOpen, Database, FilePlus, FolderOpen, Layout, Table } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, BookOpen, Database, FilePlus, FileSql, FolderOpen, Layout, Table } from "@phosphor-icons/react";
 import { useState } from "react";
 import type { SchemaTemplate } from "./template-types";
 
@@ -7,6 +7,7 @@ interface WelcomeScreenProps {
   initialShowTemplates?: boolean;
   onBlank: () => void;
   onOpen: () => void;
+  onImportSql: () => void;
   onTemplate: (template: SchemaTemplate) => void;
 }
 
@@ -21,11 +22,11 @@ function SchemaPreview() {
   </div>;
 }
 
-export function WelcomeScreen({ templates, initialShowTemplates = false, onBlank, onOpen, onTemplate }: WelcomeScreenProps) {
+export function WelcomeScreen({ templates, initialShowTemplates = false, onBlank, onOpen, onImportSql, onTemplate }: WelcomeScreenProps) {
   const [showTemplates, setShowTemplates] = useState(initialShowTemplates);
 
   return <main className="welcome-screen">
-    <header className="welcome-header"><div className="welcome-logo"><img className="theme-logo theme-logo--light" src="/Titan.svg" alt="Titanbase" /><img className="theme-logo theme-logo--dark" src="/titanbase_light.svg" alt="Titanbase" /></div><span>Visual schema designer</span><div className="welcome-header-actions"><a className="docs-link" href="https://docs.titanbase.run" target="_blank" rel="noreferrer"><BookOpen size={17} /> Docs</a><a className="docs-link github-docs-link" href="https://github.com/titanbaserun/titanbase" target="_blank" rel="noreferrer" aria-label="Titanbase on GitHub" title="Titanbase on GitHub"><img src="/github.svg" alt="" /> GitHub</a></div></header>
+    <header className="welcome-header"><div className="welcome-logo"><img className="theme-logo theme-logo--light" src="/Titan.svg" alt="Titanbase" /><img className="theme-logo theme-logo--dark" src="/titanbase_light.svg" alt="Titanbase" /></div><span>Visual schema designer</span><div className="welcome-header-actions"><a className="docs-link" href="https://www.titanbase.run" target="_blank" rel="noreferrer" title="Titanbase"><img className="brand-mark-icon" src="/titanbase-mark.svg" alt="" /> <span>Website</span></a><a className="docs-link" href="https://docs.titanbase.run" target="_blank" rel="noreferrer"><BookOpen size={17} /> <span>Docs</span></a><a className="docs-link github-docs-link" href="https://github.com/titanbaserun/titanbase" target="_blank" rel="noreferrer" aria-label="Titanbase on GitHub" title="Titanbase on GitHub"><img src="/github.svg" alt="" /> <span>GitHub</span></a></div></header>
     <section className={`welcome-content ${showTemplates ? "welcome-content--templates" : ""}`}>
       {showTemplates ? <>
         <div className="template-heading">
@@ -53,9 +54,31 @@ export function WelcomeScreen({ templates, initialShowTemplates = false, onBlank
           <SchemaPreview />
         </div>
         <div className="welcome-choices">
-          <button className="welcome-choice--recommended" onClick={onBlank}><span><FilePlus size={24} weight="duotone" /></span><i>Recommended</i><strong>Blank schema</strong><small>Start from an empty relational schema.</small></button>
-          <button onClick={() => setShowTemplates(true)}><span><Layout size={24} weight="duotone" /></span><strong>Use template</strong><small>Start from Blog, SaaS, Ecommerce, CRM, Analytics, and more.</small></button>
-          <button onClick={onOpen}><span><FolderOpen size={24} weight="duotone" /></span><strong>Open .titan.json</strong><small>Continue from an existing Titanbase schema file.</small></button>
+          <button className="welcome-choice welcome-choice--recommended" onClick={onBlank}>
+            <span className="welcome-choice-icon"><FilePlus size={22} weight="duotone" /></span>
+            <i className="welcome-choice-badge">Recommended</i>
+            <strong>Blank schema</strong>
+            <small>Start from an empty relational schema.</small>
+            <span className="welcome-choice-cta">Create schema <ArrowRight size={13} weight="bold" /></span>
+          </button>
+          <button className="welcome-choice" onClick={() => setShowTemplates(true)}>
+            <span className="welcome-choice-icon"><Layout size={22} weight="duotone" /></span>
+            <strong>Use template</strong>
+            <small>Start from Blog, SaaS, Ecommerce, CRM, Analytics, and more.</small>
+            <span className="welcome-choice-cta">Browse templates <ArrowRight size={13} weight="bold" /></span>
+          </button>
+          <button className="welcome-choice" onClick={onOpen}>
+            <span className="welcome-choice-icon"><FolderOpen size={22} weight="duotone" /></span>
+            <strong>Open .titan.json</strong>
+            <small>Continue from an existing Titanbase schema file.</small>
+            <span className="welcome-choice-cta">Open file <ArrowRight size={13} weight="bold" /></span>
+          </button>
+          <button className="welcome-choice" onClick={onImportSql}>
+            <span className="welcome-choice-icon"><FileSql size={22} weight="duotone" /></span>
+            <strong>Import .sql</strong>
+            <small>Convert a local PostgreSQL schema file into an editable Titanbase project.</small>
+            <span className="welcome-choice-cta">Import SQL <ArrowRight size={13} weight="bold" /></span>
+          </button>
         </div>
       </>}
     </section>

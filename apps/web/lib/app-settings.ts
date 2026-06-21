@@ -4,7 +4,7 @@ export const APP_SETTINGS_KEY = "titanbase:app-settings";
 
 export const defaultAppSettings: EditorAppSettings = {
   theme: "light",
-  showMinimap: true,
+  showMinimap: false,
   showGrid: true,
   autoFitViewOnLoad: true,
   autosave: true,

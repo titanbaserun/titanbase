@@ -11,9 +11,7 @@
         { "id": "teams.slug", "name": "slug", "type": "text", "nullable": false, "primaryKey": false, "unique": true },
         { "id": "teams.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "teams.slug_idx", "name": "teams_slug_idx", "table": "teams", "columns": ["teams.slug"], "unique": true }
-      ]
+      "indexes": []
     },
     {
       "id": "models", "name": "models", "description": "Registered ML models.",
@@ -29,10 +27,7 @@
         { "id": "models.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
         { "id": "models.updated_at", "name": "updated_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "models.slug_idx", "name": "models_slug_idx", "table": "models", "columns": ["models.slug"], "unique": true },
-        { "id": "models.team_idx", "name": "models_team_idx", "table": "models", "columns": ["models.team_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "models.team_idx", "name": "models_team_idx", "table": "models", "columns": ["models.team_id"], "unique": false }]
     },
     {
       "id": "model_versions", "name": "model_versions", "description": "Versioned snapshots of a model.",
@@ -47,9 +42,7 @@
         { "id": "model_versions.release_notes", "name": "release_notes", "type": "text", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "model_versions.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "model_versions.model_version_idx", "name": "model_versions_model_version_idx", "table": "model_versions", "columns": ["model_versions.model_id", "model_versions.version"], "unique": true }
-      ]
+      "indexes": [{ "id": "model_versions.model_version_idx", "name": "model_versions_model_version_idx", "table": "model_versions", "columns": ["model_versions.model_id","model_versions.version"], "unique": true }]
     },
     {
       "id": "experiments", "name": "experiments", "description": "Training runs and experiments.",
@@ -64,10 +57,7 @@
         { "id": "experiments.started_at", "name": "started_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
         { "id": "experiments.finished_at", "name": "finished_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false }
       ],
-      "indexes": [
-        { "id": "experiments.model_idx", "name": "experiments_model_idx", "table": "experiments", "columns": ["experiments.model_id"], "unique": false },
-        { "id": "experiments.status_idx", "name": "experiments_status_idx", "table": "experiments", "columns": ["experiments.status"], "unique": false }
-      ]
+      "indexes": [{ "id": "experiments.model_idx", "name": "experiments_model_idx", "table": "experiments", "columns": ["experiments.model_id"], "unique": false }, { "id": "experiments.status_idx", "name": "experiments_status_idx", "table": "experiments", "columns": ["experiments.status"], "unique": false }]
     },
     {
       "id": "deployments", "name": "deployments", "description": "Model version deployments to serving infrastructure.",
@@ -81,10 +71,7 @@
         { "id": "deployments.deployed_at", "name": "deployed_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" },
         { "id": "deployments.retired_at", "name": "retired_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false }
       ],
-      "indexes": [
-        { "id": "deployments.version_env_idx", "name": "deployments_version_env_idx", "table": "deployments", "columns": ["deployments.model_version_id", "deployments.environment"], "unique": false },
-        { "id": "deployments.status_idx", "name": "deployments_status_idx", "table": "deployments", "columns": ["deployments.status"], "unique": false }
-      ]
+      "indexes": [{ "id": "deployments.version_env_idx", "name": "deployments_version_env_idx", "table": "deployments", "columns": ["deployments.model_version_id","deployments.environment"], "unique": false }, { "id": "deployments.status_idx", "name": "deployments_status_idx", "table": "deployments", "columns": ["deployments.status"], "unique": false }]
     },
     {
       "id": "model_tags", "name": "model_tags", "description": "Labels for model categorization.",
@@ -92,9 +79,7 @@
         { "id": "model_tags.model_id", "name": "model_id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": false },
         { "id": "model_tags.tag", "name": "tag", "type": "text", "nullable": false, "primaryKey": true, "unique": false }
       ],
-      "indexes": [
-        { "id": "model_tags.tag_idx", "name": "model_tags_tag_idx", "table": "model_tags", "columns": ["model_tags.tag"], "unique": false }
-      ]
+      "indexes": [{ "id": "model_tags.tag_idx", "name": "model_tags_tag_idx", "table": "model_tags", "columns": ["model_tags.tag"], "unique": false }, { "id": "model_tags.model_tags_model_id_idx", "name": "model_tags_model_id_idx", "table": "model_tags", "columns": ["model_tags.model_id"], "unique": false, "method": "btree" }]
     },
     {
       "id": "access_tokens", "name": "access_tokens", "description": "API tokens for programmatic model access.",
@@ -108,10 +93,7 @@
         { "id": "access_tokens.last_used_at", "name": "last_used_at", "type": "timestamptz", "nullable": true, "primaryKey": false, "unique": false },
         { "id": "access_tokens.created_at", "name": "created_at", "type": "timestamptz", "nullable": false, "primaryKey": false, "unique": false, "default": "now()" }
       ],
-      "indexes": [
-        { "id": "access_tokens.token_hash_idx", "name": "access_tokens_token_hash_idx", "table": "access_tokens", "columns": ["access_tokens.token_hash"], "unique": true },
-        { "id": "access_tokens.team_idx", "name": "access_tokens_team_idx", "table": "access_tokens", "columns": ["access_tokens.team_id"], "unique": false }
-      ]
+      "indexes": [{ "id": "access_tokens.team_idx", "name": "access_tokens_team_idx", "table": "access_tokens", "columns": ["access_tokens.team_id"], "unique": false }]
     }
   ],
   "enums": [

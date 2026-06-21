@@ -1,5 +1,5 @@
 import { useReducer } from "react";
-import type { TitanColumn, TitanEnum, TitanIndex, TitanPosition, TitanRelation, TitanSchema, TitanTable } from "@titanbase/core";
+import type { TitanColumn, TitanDiagnostic, TitanEnum, TitanIndex, TitanPosition, TitanRelation, TitanSchema, TitanTable } from "@titanbase/core";
 
 export type EditorSelection =
   | { kind: "table"; tableId: string }
@@ -232,7 +232,18 @@ export function useSchemaHistory(initialSchema: TitanSchema) {
   };
 }
 
-export function selectionForDiagnostic(path: string, schema: TitanSchema): EditorSelection {
+export function selectionForDiagnostic(diagnostic: string | TitanDiagnostic, schema: TitanSchema): EditorSelection {
+  if (typeof diagnostic !== "string") {
+    if (diagnostic.relationId && schema.relations.some((relation) => relation.id === diagnostic.relationId)) return { kind: "relation", relationId: diagnostic.relationId };
+    if (diagnostic.enumId && schema.enums.some((item) => item.id === diagnostic.enumId)) return { kind: "enum", enumId: diagnostic.enumId };
+    if (diagnostic.tableId) {
+      const table = schema.tables.find((item) => item.id === diagnostic.tableId);
+      if (table && diagnostic.columnId && table.columns.some((column) => column.id === diagnostic.columnId)) return { kind: "column", tableId: table.id, columnId: diagnostic.columnId };
+      if (table && diagnostic.indexId && table.indexes.some((index) => index.id === diagnostic.indexId)) return { kind: "index", tableId: table.id, indexId: diagnostic.indexId };
+      if (table) return { kind: "table", tableId: table.id };
+    }
+  }
+  const path = typeof diagnostic === "string" ? diagnostic : diagnostic.path;
   const parts = path.split(".");
   const entityIndex = Number(parts[1]);
   if (parts[0] === "tables" && Number.isInteger(entityIndex)) {

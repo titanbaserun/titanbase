@@ -17,7 +17,7 @@
       { "id": "subscriptions.id", "name": "id", "type": "uuid", "nullable": false, "primaryKey": true, "unique": true },
       { "id": "subscriptions.account_id", "name": "account_id", "type": "uuid", "nullable": false, "primaryKey": false, "unique": true },
       { "id": "subscriptions.status", "name": "status", "type": "text", "nullable": false, "primaryKey": false, "unique": false }
-    ], "indexes": [{ "id": "subscriptions.account_idx", "name": "subscriptions_account_idx", "table": "subscriptions", "columns": ["subscriptions.account_id"], "unique": true }] }
+    ], "indexes": [] }
   ],
   "enums": [{ "id": "plan", "name": "plan", "values": ["free", "pro", "business"], "description": "Available account plans." }],
   "relations": [

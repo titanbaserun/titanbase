@@ -1,16 +1,14 @@
 {
-  "name": "@titanbase/editor",
+  "name": "@titanbase/import-postgres",
   "version": "0.4.0",
-  "description": "Visual database schema editor — React component for designing tables, relations, and indexes.",
+  "description": "Local PostgreSQL DDL importer for Titanbase schemas.",
   "license": "Apache-2.0",
   "author": "Titanbase Contributors",
   "repository": {
     "type": "git",
     "url": "https://github.com/titanbaserun/titanbase.git",
-    "directory": "packages/editor"
+    "directory": "packages/import-postgres"
   },
-  "homepage": "https://github.com/titanbaserun/titanbase",
-  "keywords": ["database", "schema", "visual-editor", "react", "reactflow", "erd", "titanbase"],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -30,26 +28,17 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@phosphor-icons/react": "^2.1.10",
-    "@titanbase/core": "workspace:*",
+    "@titanbase/core": "workspace:*"
+  },
+  "devDependencies": {
     "@titanbase/export-drizzle": "workspace:*",
     "@titanbase/export-mermaid": "workspace:*",
     "@titanbase/export-postgres": "workspace:*",
     "@titanbase/export-prisma": "workspace:*",
-    "@titanbase/import-postgres": "workspace:*",
-    "@titanbase/ui": "workspace:*",
-    "@xyflow/react": "^12.8.1"
-  },
-  "devDependencies": {
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
   "peerDependencies": {
-    "react": ">=18.0.0",
-    "react-dom": ">=18.0.0"
+    "@titanbase/core": ">=0.3.0"
   }
 }

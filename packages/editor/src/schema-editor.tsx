@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow, useReactFlow, ReactFlowProvider, type Edge, type Node, type NodeChange } from "@xyflow/react";
-import { ArrowArcLeft, ArrowArcRight, BookOpen, BracketsCurly, CaretDoubleRight, CheckCircle, Database, DownloadSimple, FilePlus, FloppyDisk, FolderOpen, Gear, Link, MagnifyingGlass, Moon, Plus, PushPin, PushPinSlash, SidebarSimple, Sun, Table as TableIcon, TreeStructure, WarningCircle } from "@phosphor-icons/react";
+import { ArrowArcLeft, ArrowArcRight, BookOpen, BracketsCurly, CaretDoubleRight, CheckCircle, Database, DownloadSimple, FilePlus, FileSql, FloppyDisk, FolderOpen, Gear, Link, MagnifyingGlass, Moon, Plus, PushPin, PushPinSlash, SidebarSimple, Sun, Table as TableIcon, TreeStructure, WarningCircle } from "@phosphor-icons/react";
 import { createEmptySchema, diagnoseSchema, normalizeSchema, type TitanDiagnostic, type TitanEnum, type TitanIndex, type TitanRelation, type TitanSchema, type TitanTable } from "@titanbase/core";
 import { exportDrizzle } from "@titanbase/export-drizzle";
 import { exportMermaid } from "@titanbase/export-mermaid";
 import { exportPostgres } from "@titanbase/export-postgres";
 import { exportPrisma } from "@titanbase/export-prisma";
+import { importPostgresSql, type ImportWarning } from "@titanbase/import-postgres";
 import { Badge, Button, Input } from "@titanbase/ui";
 import { ExportModal } from "./export-modal";
 import { createExportFilename, type ExportTarget } from "./export-utils";
@@ -21,6 +22,7 @@ import { TableNodeView, type TableNode } from "./table-node";
 import type { SchemaTemplate } from "./template-types";
 import { WelcomeScreen } from "./welcome-screen";
 import { SettingsDialog } from "./settings-dialog";
+import { ImportResultDialog } from "./import-result-dialog";
 import { fallbackEditorSettings, type EditorAppSettings, type ResolvedTheme } from "./settings";
 
 const nodeTypes = { tableNode: TableNodeView };
@@ -31,6 +33,9 @@ const nextId = (prefix: string) => `${prefix}-${globalThis.crypto?.randomUUID?.(
 const emptyMultiSelection: MultiSelection = { tableIds: new Set(), relationIds: new Set() };
 
 function diagnosticGroup(issue: TitanDiagnostic, schema: TitanSchema) {
+  if (issue.tableId) return schema.tables.find((table) => table.id === issue.tableId)?.name ?? "Tables";
+  if (issue.relationId) return schema.relations.find((relation) => relation.id === issue.relationId)?.name ?? "Relations";
+  if (issue.enumId) return schema.enums.find((item) => item.id === issue.enumId)?.name ?? "Enums";
   const parts = issue.path.split(".");
   const index = Number(parts[1]);
   if (parts[0] === "tables") return schema.tables[index]?.name ?? "Tables";
@@ -77,6 +82,7 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
   const [notice, setNotice] = useState("Saved");
   const [filename, setFilename] = useState(schema.tables.length ? `${schema.project.id}.titan.json` : "untitled.titan.json");
   const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(schema));
+  const [requiresJsonSave, setRequiresJsonSave] = useState(false);
   const [showWelcome, setShowWelcome] = useState(schema.tables.length === 0);
   const [welcomeTemplates, setWelcomeTemplates] = useState(false);
   const [fitRevision, setFitRevision] = useState(0);
@@ -86,10 +92,12 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [replaceOpen, setReplaceOpen] = useState(false);
+  const [importReport, setImportReport] = useState<{ sourceName: string; warnings: ImportWarning[]; errors: ImportWarning[] } | null>(null);
   const [inspectorPreview, setInspectorPreview] = useState(false);
   const [narrowInspector, setNarrowInspector] = useState(false);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
+  const jsonFileInput = useRef<HTMLInputElement>(null);
+  const sqlFileInput = useRef<HTMLInputElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const dragStart = useRef<TitanSchema | null>(null);
   const replaceAction = useRef<(() => void) | null>(null);
@@ -97,6 +105,9 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
   schemaRef.current = schema;
   const reactFlow = useReactFlow();
   const darkMode = resolvedTheme === "dark";
+  const minimapNodeColor = darkMode ? "#58647c" : "#9bb8a3";
+  const minimapSelectedColor = darkMode ? "#60a5fa" : "#0bad45";
+  const minimapMaskColor = darkMode ? "rgba(17, 17, 24, 0.72)" : "rgba(248, 250, 248, 0.7)";
   const inspectorVisible = settings.inspectorOpen || inspectorPreview;
   const inspectorPinnedOpen = settings.inspectorPinned && settings.inspectorOpen && !narrowInspector;
 
@@ -119,17 +130,17 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
 
   const currentSnapshot = useMemo(() => JSON.stringify(schema), [schema]);
   const isDirty = savedSnapshot !== currentSnapshot;
-  const saveStatus = isDirty ? "Unsaved changes" : notice === "Saved locally" ? "Saved locally" : "Saved";
+  const saveStatus = requiresJsonSave ? "Unsaved .titan.json" : isDirty ? "Unsaved changes" : notice === "Saved locally" ? "Saved locally" : "Saved";
 
   useEffect(() => {
     if (!settings.autosave || !isDirty || showWelcome) return;
     const timeout = window.setTimeout(() => {
       localStorage.setItem(STORAGE_KEY, currentSnapshot);
-      setSavedSnapshot(currentSnapshot);
-      setNotice("Saved locally");
+      if (!requiresJsonSave) setSavedSnapshot(currentSnapshot);
+      setNotice(requiresJsonSave ? "Local draft saved" : "Saved locally");
     }, 700);
     return () => window.clearTimeout(timeout);
-  }, [currentSnapshot, isDirty, settings.autosave, showWelcome]);
+  }, [currentSnapshot, isDirty, requiresJsonSave, settings.autosave, showWelcome]);
 
   useEffect(() => {
     if (!settings.autoFitViewOnLoad || showWelcome || !schema.tables.length) return;
@@ -165,7 +176,8 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
       }
       // Escape: close search or deselect
       if (event.key === "Escape") {
-        if (replaceOpen) { setReplaceOpen(false); replaceAction.current = null; }
+        if (importReport) setImportReport(null);
+        else if (replaceOpen) { setReplaceOpen(false); replaceAction.current = null; }
         else if (leaveOpen) setLeaveOpen(false);
         else if (settingsOpen) setSettingsOpen(false);
         else if (preview) setPreview(null);
@@ -230,9 +242,11 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [history, selection, multiSelection, preview, searchOpen, leaveOpen, replaceOpen, settingsOpen, inspectorVisible, inspectorPinnedOpen, settings, onSettingsChange]);
+  }, [history, selection, multiSelection, preview, searchOpen, leaveOpen, replaceOpen, importReport, settingsOpen, inspectorVisible, inspectorPinnedOpen, settings, onSettingsChange]);
 
   const diagnostics = useMemo(() => diagnoseSchema(schema), [schema]);
+  const diagnosticErrors = useMemo(() => diagnostics.filter((issue) => issue.severity === "error"), [diagnostics]);
+  const diagnosticWarnings = useMemo(() => diagnostics.filter((issue) => issue.severity === "warning"), [diagnostics]);
   const sqlResult = useMemo(() => exportPostgres(schema), [schema]);
   const mermaidResult = useMemo(() => exportMermaid(schema), [schema]);
   const prismaResult = useMemo(() => exportPrisma(schema), [schema]);
@@ -267,6 +281,8 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     id: table.id,
     type: "tableNode",
     position: schema.metadata.editor.tablePositions[table.id] ?? { x: 80 + index * 340, y: 100 + index * 90 },
+    width: 330,
+    height: 46 + table.columns.length * 37,
     data: {
       table,
       foreignKeyColumnIds: new Set(table.columns.filter((column) => isForeignKeyColumn(schema, table.id, column.id)).map((column) => column.id)),
@@ -350,14 +366,15 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     setReplaceOpen(true);
   };
 
-  const replaceProject = (nextSchema: TitanSchema, nextFilename: string, nextNotice: string) => {
+  const replaceProject = (nextSchema: TitanSchema, nextFilename: string, nextNotice: string, markDirty = false) => {
     const normalized = normalizeSchema(nextSchema);
     history.reset(normalized);
     schemaRef.current = normalized;
     setSelection(null);
     setMultiSelection(emptyMultiSelection);
     setFilename(nextFilename);
-    setSavedSnapshot(JSON.stringify(normalized));
+    setSavedSnapshot(markDirty ? "" : JSON.stringify(normalized));
+    setRequiresJsonSave(markDirty);
     setNotice(nextNotice);
     setShowWelcome(false);
     setWelcomeTemplates(false);
@@ -379,14 +396,18 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
   };
 
   const requestOpenJson = () => {
-    requestReplace(() => fileInput.current?.click());
+    requestReplace(() => jsonFileInput.current?.click());
+  };
+
+  const requestImportSql = () => {
+    requestReplace(() => sqlFileInput.current?.click());
   };
 
   const saveLocal = () => {
     const serialized = JSON.stringify(schema);
     localStorage.setItem(STORAGE_KEY, serialized);
-    setSavedSnapshot(serialized);
-    setNotice("Saved locally");
+    if (!requiresJsonSave) setSavedSnapshot(serialized);
+    setNotice(requiresJsonSave ? "Local draft saved" : "Saved locally");
   };
 
   const loadLocal = () => {
@@ -407,6 +428,21 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
       const loaded = normalizeSchema(JSON.parse(await file.text()));
       replaceProject(loaded, file.name, "Saved");
     } catch { setNotice("Could not load schema"); }
+    event.target.value = "";
+  };
+
+  const importSql = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const result = importPostgresSql(await file.text(), { sourceName: file.name });
+    if (!result.schema || result.errors.length) {
+      setImportReport({ sourceName: file.name, warnings: result.warnings, errors: result.errors.length ? result.errors : [{ code: "import_failed", message: "Titanbase could not create a schema from this SQL file." }] });
+      event.target.value = "";
+      return;
+    }
+    const outputName = `${file.name.replace(/\.(?:sql|psql)$/i, "") || "imported-schema"}.titan.json`;
+    replaceProject(result.schema, outputName, `Imported ${file.name}`, true);
+    if (result.warnings.length) setImportReport({ sourceName: file.name, warnings: result.warnings, errors: [] });
     event.target.value = "";
   };
 
@@ -446,7 +482,8 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     anchor.download = createExportFilename(schema.project.name, target);
     anchor.click();
     URL.revokeObjectURL(anchor.href);
-    setSavedSnapshot(JSON.stringify(schema));
+    if (!requiresJsonSave || target === "json") setSavedSnapshot(JSON.stringify(schema));
+    if (target === "json") setRequiresJsonSave(false);
     setNotice("Saved");
   };
 
@@ -457,12 +494,14 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     history.reset(empty);
     schemaRef.current = empty;
     setSavedSnapshot(JSON.stringify(empty));
+    setRequiresJsonSave(false);
     setFilename("untitled.titan.json");
     setSelection(null);
     setMultiSelection(emptyMultiSelection);
     setPreview(null);
     setSettingsOpen(false);
     setLeaveOpen(false);
+    setImportReport(null);
     setWelcomeTemplates(false);
     setShowWelcome(true);
     setNotice("Saved");
@@ -584,8 +623,10 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
   const statistics = useMemo(() => getSchemaStatistics(schema), [schema]);
 
   if (showWelcome) return <>
-    <WelcomeScreen templates={templates} initialShowTemplates={welcomeTemplates} onBlank={startBlank} onOpen={requestOpenJson} onTemplate={startTemplate} />
-    <input ref={fileInput} className="sr-only" type="file" accept=".json,.titan.json" onChange={importJson} />
+    <WelcomeScreen templates={templates} initialShowTemplates={welcomeTemplates} onBlank={startBlank} onOpen={requestOpenJson} onImportSql={requestImportSql} onTemplate={startTemplate} />
+    <input ref={jsonFileInput} className="sr-only" type="file" accept=".json,.titan.json,application/json" onChange={importJson} />
+    <input ref={sqlFileInput} className="sr-only" type="file" accept=".sql,.psql,text/sql,application/sql" onChange={importSql} />
+    {importReport ? <ImportResultDialog {...importReport} onClose={() => setImportReport(null)} /> : null}
   </>;
 
   return <main className={`editor-shell ${darkMode ? "dark" : ""} ${inspectorPinnedOpen ? "editor-shell--inspector-pinned" : ""}`} data-theme={resolvedTheme}>
@@ -594,11 +635,13 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
       <div className="file-status"><BracketsCurly size={17} /><span><strong>{schema.project.name}</strong><small>{filename}</small></span><span className={`status-dot ${isDirty ? "status-dot--dirty" : ""}`} /><em>{saveStatus}</em></div>
       <div className="toolbar-actions">
         <div className="toolbar-group"><Button variant="ghost" disabled={!history.canUndo} onClick={history.undo} title="Undo (Ctrl+Z)"><ArrowArcLeft size={18} /><span className="action-label">Undo</span></Button><Button variant="ghost" disabled={!history.canRedo} onClick={history.redo} title="Redo (Ctrl+Shift+Z)"><ArrowArcRight size={18} /><span className="action-label">Redo</span></Button></div>
-        <div className="toolbar-group"><Button variant="ghost" onClick={startBlank} title="New schema"><FilePlus size={18} /><span className="action-label">New</span></Button><Button variant="ghost" onClick={saveLocal} title="Save locally (Ctrl+S)"><FloppyDisk size={18} /><span className="action-label">Save</span></Button><Button variant="ghost" onClick={loadLocal} title="Load local draft"><FolderOpen size={18} /><span className="action-label">Load</span></Button><Button className="export-toolbar-button" onClick={() => setPreview("json")} title="Export and download schema files"><DownloadSimple size={18} /> Export</Button></div>
+        <div className="toolbar-group"><Button variant="ghost" onClick={startBlank} title="New schema"><FilePlus size={18} /><span className="action-label">New</span></Button><Button variant="ghost" onClick={saveLocal} title="Save locally (Ctrl+S)"><FloppyDisk size={18} /><span className="action-label">Save</span></Button><Button variant="ghost" onClick={loadLocal} title="Load local draft"><FolderOpen size={18} /><span className="action-label">Load</span></Button><Button variant="ghost" onClick={requestImportSql} title="Import a local PostgreSQL SQL file"><FileSql size={18} /><span className="action-label">Import</span></Button><Button className="export-toolbar-button" onClick={() => setPreview("json")} title="Export and download schema files"><DownloadSimple size={18} /> Export</Button></div>
         <div className="toolbar-group toolbar-group--add"><Button variant="primary" onClick={addTable}><Plus size={18} /> Table</Button><Button onClick={createRelation}><Link size={18} /> Relation</Button><Button onClick={createEnum}><Database size={18} /> Enum</Button></div>
-        <div className="toolbar-group"><a className="docs-link" href="https://docs.titanbase.run" target="_blank" rel="noreferrer" title="Open Titanbase documentation"><BookOpen size={18} /><span className="action-label">Docs</span></a><Button variant="ghost" onClick={() => { setSearchOpen(!searchOpen); if (!searchOpen) setTimeout(() => searchInput.current?.focus(), 50); }} title="Search (Ctrl+F)"><MagnifyingGlass size={18} /></Button><Button variant="ghost" onClick={runAutoLayout} title="Auto-layout tables"><TreeStructure size={18} /></Button><Button variant="ghost" onClick={() => setSettingsOpen(true)} title="Settings"><Gear size={18} /></Button><Button variant="ghost" onClick={toggleTheme} title="Toggle theme">{darkMode ? <Sun size={18} /> : <Moon size={18} />}</Button></div>
+        <div className="toolbar-group"><Button variant="ghost" onClick={() => { setSearchOpen(!searchOpen); if (!searchOpen) setTimeout(() => searchInput.current?.focus(), 50); }} title="Search (Ctrl+F)"><MagnifyingGlass size={18} /></Button><Button variant="ghost" onClick={runAutoLayout} title="Auto-layout tables"><TreeStructure size={18} /></Button><Button variant="ghost" onClick={() => setSettingsOpen(true)} title="Settings"><Gear size={18} /></Button><Button variant="ghost" onClick={toggleTheme} title="Toggle theme">{darkMode ? <Sun size={18} /> : <Moon size={18} />}</Button></div>
+        <div className="toolbar-group"><a className="docs-link docs-link--icon" href="https://www.titanbase.run" target="_blank" rel="noreferrer" title="Titanbase" aria-label="Titanbase website"><img className="brand-mark-icon" src="/titanbase-mark.svg" alt="" /></a><a className="docs-link docs-link--icon" href="https://docs.titanbase.run" target="_blank" rel="noreferrer" title="Docs" aria-label="Documentation"><BookOpen size={18} /></a></div>
       </div>
-      <input ref={fileInput} className="sr-only" type="file" accept=".json,.titan.json" onChange={importJson} />
+      <input ref={jsonFileInput} className="sr-only" type="file" accept=".json,.titan.json,application/json" onChange={importJson} />
+      <input ref={sqlFileInput} className="sr-only" type="file" accept=".sql,.psql,text/sql,application/sql" onChange={importSql} />
     </header>
 
     {searchOpen && <div className="search-bar">
@@ -613,33 +656,34 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
         <ReactFlow<TableNode> nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onNodeClick={onNodeClick} onEdgeClick={onEdgeClick} onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)} onEdgeMouseLeave={() => setHoveredEdgeId(null)} onPaneClick={() => { setSelection(null); setMultiSelection(emptyMultiSelection); setPreview(null); }} onNodeDragStart={() => { dragStart.current = schemaRef.current; }} onNodeDragStop={() => { if (dragStart.current) history.commitFrom(dragStart.current, schemaRef.current); dragStart.current = null; }} fitView minZoom={0.35} maxZoom={1.8} selectionOnDrag={false} panOnDrag panOnScroll zoomOnScroll={false} proOptions={{ hideAttribution: true }}>
           {settings.showGrid ? <Background variant={BackgroundVariant.Dots} color="var(--canvas-grid)" gap={22} size={1.2} /> : null}
           <Controls showInteractive={false} />
-          {settings.showMinimap ? <MiniMap pannable zoomable nodeColor={(node) => node.id === selectedTableId || multiSelection.tableIds.has(node.id) ? "var(--primary)" : "var(--minimap-node)"} maskColor="var(--minimap-mask)" /> : null}
+          {settings.showMinimap && schema.tables.length ? <MiniMap pannable zoomable nodeColor={(node) => node.id === selectedTableId || multiSelection.tableIds.has(node.id) ? minimapSelectedColor : minimapNodeColor} maskColor={minimapMaskColor} /> : null}
         </ReactFlow>
-        <Button className="canvas-import" onClick={() => fileInput.current?.click()}><FolderOpen size={17} /> Open JSON</Button>
+        <Button className="canvas-import" onClick={() => jsonFileInput.current?.click()}><FolderOpen size={17} /> Open JSON</Button>
         {hoveredRelation && <div className="relation-tooltip">
           <strong>{hoveredRelation.name}</strong>
           <span>{hoveredRelation.from} → {hoveredRelation.to}</span>
           <small>{hoveredRelation.cardinality}</small>
         </div>}
         {multiSelection.tableIds.size + multiSelection.relationIds.size > 0 && <div className="multi-select-badge">{multiSelection.tableIds.size + multiSelection.relationIds.size} selected — press Delete to remove</div>}
-        {!schema.tables.length ? <div className="canvas-empty"><TableIcon size={34} weight="duotone" /><h2>Start designing your schema</h2><p>Add your first table, start from a template, or open an existing .titan.json file.</p><div><Button variant="primary" onClick={addTable}><Plus size={17} /> Add Table</Button><Button onClick={showTemplatePicker}>Use Template</Button><Button onClick={requestOpenJson}><FolderOpen size={17} /> Open JSON</Button></div><small>Tip: Titanbase saves your schema as a portable .titan.json file.</small></div> : null}
+        {!schema.tables.length ? <div className="canvas-empty"><TableIcon size={34} weight="duotone" /><h2>Start designing your schema</h2><p>Add your first table, start from a template, open a .titan.json file, or import PostgreSQL DDL.</p><div><Button variant="primary" onClick={addTable}><Plus size={17} /> Add Table</Button><Button onClick={showTemplatePicker}>Use Template</Button><Button onClick={requestOpenJson}><FolderOpen size={17} /> Open JSON</Button><Button onClick={requestImportSql}><FileSql size={17} /> Import SQL</Button></div><small>Tip: SQL import runs locally and never connects to your database.</small></div> : null}
       </section>
 
       {!inspectorVisible ? <button className="inspector-handle" aria-label="Open inspector" title="Open inspector" onClick={openInspector} onMouseEnter={() => { if (!settings.inspectorPinned && settings.inspectorHover) setInspectorPreview(true); }}><SidebarSimple size={18} /><span>Inspector</span></button> : null}
       {inspectorVisible ? <aside className={`inspector ${inspectorPinnedOpen ? "inspector--pinned" : "inspector--overlay"}`} onMouseLeave={closeInspectorOverlay}>
         <header className="inspector-shell-header"><strong>{inspectorContextTitle(selection)}</strong><div><button aria-label={settings.inspectorPinned ? "Unpin sidebar" : "Pin sidebar"} title={settings.inspectorPinned ? "Unpin sidebar" : "Pin sidebar"} onClick={toggleInspectorPin}>{settings.inspectorPinned ? <PushPinSlash size={16} /> : <PushPin size={16} />}</button><button aria-label="Collapse sidebar" title="Collapse sidebar" onClick={collapseInspector}><CaretDoubleRight size={16} /></button></div></header>
-        <div className="inspector-body">{selection ? <SchemaInspector schema={schema} selection={selection} commit={history.commit} select={setSelection} createColumn={createColumn} createIndex={createIndex} /> : <ProjectOverview schema={schema} filename={filename} diagnostics={diagnostics} commit={history.commit} onAddTable={addTable} onAddRelation={createRelation} onAddEnum={createEnum} onExport={setPreview} onOpen={requestOpenJson} onTemplates={showTemplatePicker} />}</div>
+        <div className="inspector-body">{selection ? <SchemaInspector schema={schema} selection={selection} commit={history.commit} select={setSelection} createColumn={createColumn} createIndex={createIndex} /> : <ProjectOverview schema={schema} filename={filename} diagnostics={diagnostics} commit={history.commit} onAddTable={addTable} onAddRelation={createRelation} onAddEnum={createEnum} onExport={setPreview} onOpen={requestOpenJson} onImportSql={requestImportSql} onTemplates={showTemplatePicker} />}</div>
       </aside> : null}
     </div>
 
     <footer className={`diagnostics-panel ${validationOpen ? "diagnostics-panel--open" : ""}`}>
-      <button className="diagnostics-header" onClick={() => diagnostics.length && setValidationOpen((open) => !open)}><div className="diagnostic-summary">{diagnostics.some((issue) => issue.severity === "error") ? <WarningCircle size={19} weight="fill" /> : <CheckCircle size={19} weight="fill" />}<strong>{diagnostics.some((issue) => issue.severity === "error") ? "Schema has errors" : "Schema valid"}</strong><span>{diagnostics.length} issue{diagnostics.length === 1 ? "" : "s"}</span><span>{saveStatus}</span></div><div className="schema-stats">{statistics.tables} tables <i /> {statistics.columns} columns <i /> {statistics.relations} relations <i /> {statistics.indexes} indexes <i /> {statistics.enums} enums</div></button>
-      {validationOpen && diagnostics.length ? <div className="diagnostic-groups">{groupedDiagnostics.map(([group, issues]) => <section key={group}><h3>{group}<Badge tone={issues?.some((issue) => issue.severity === "error") ? "amber" : "neutral"}>{issues?.length ?? 0}</Badge></h3>{issues?.map((issue) => <button key={`${issue.code}-${issue.path}`} onClick={() => { const next = selectionForDiagnostic(issue.path, schema); if (next) { setSelection(next); setPreview(null); } }}><Badge tone={issue.severity === "error" ? "amber" : "neutral"}>{issue.severity}</Badge><span><strong>{issue.message}</strong><code>{issue.path}</code></span></button>)}</section>)}</div> : null}
+      <button className="diagnostics-header" onClick={() => setValidationOpen((open) => !open)}><div className="diagnostic-summary">{diagnosticErrors.length ? <WarningCircle size={19} weight="fill" /> : diagnosticWarnings.length ? <WarningCircle size={19} /> : <CheckCircle size={19} weight="fill" />}<strong>{diagnosticErrors.length ? "Schema has errors" : diagnosticWarnings.length ? "Schema valid with warnings" : "Schema valid"}</strong><span>{diagnosticErrors.length} errors</span><span>{diagnosticWarnings.length} warnings</span><span>{saveStatus}</span></div><div className="schema-stats">{statistics.tables} tables <i /> {statistics.columns} columns <i /> {statistics.relations} relations <i /> {statistics.indexes} indexes <i /> {statistics.enums} enums</div></button>
+      {validationOpen ? diagnostics.length ? <div className="diagnostic-groups">{groupedDiagnostics.map(([group, issues]) => <section key={group}><h3>{group}<Badge tone={issues?.some((issue) => issue.severity === "error") ? "amber" : issues?.some((issue) => issue.severity === "warning") ? "neutral" : "blue"}>{issues?.length ?? 0}</Badge></h3>{issues?.map((issue) => <button key={`${issue.code}-${issue.path}`} onClick={() => { const next = selectionForDiagnostic(issue, schema); if (next) { setSelection(next); setPreview(null); } }}><Badge tone={issue.severity === "error" ? "amber" : issue.severity === "info" ? "blue" : "neutral"}>{issue.severity}</Badge><span><strong>{issue.message}</strong>{issue.help ? <small>{issue.help}</small> : null}<span className="diagnostic-meta"><code>{issue.code}</code><code>{issue.path}</code></span></span></button>)}</section>)}</div> : <div className="diagnostics-empty"><CheckCircle size={18} weight="fill" /><span><strong>No validation issues</strong><small>Your schema is structurally valid and ready to export.</small></span></div> : null}
     </footer>
     {preview ? <ExportModal tab={preview} content={previewContent} diagnostics={diagnostics} warnings={exportPreview.warnings} onTab={setPreview} onClose={() => setPreview(null)} onCopy={copyPreview} onDownload={download} /> : null}
     {settingsOpen && onSettingsChange ? <SettingsDialog settings={settings} onChange={onSettingsChange} onClearDraft={clearLocalDraft} onReset={() => { onResetSettings?.(); setNotice("Settings reset"); }} onClose={() => setSettingsOpen(false)} /> : null}
     {leaveOpen ? <LeaveDialog onSaveAndLeave={saveAndLeave} onLeave={returnToWelcome} onCancel={() => setLeaveOpen(false)} /> : null}
     {replaceOpen ? <ReplaceDialog onReplace={() => { const action = replaceAction.current; replaceAction.current = null; setReplaceOpen(false); action?.(); }} onCancel={() => { replaceAction.current = null; setReplaceOpen(false); }} /> : null}
+    {importReport ? <ImportResultDialog {...importReport} onClose={() => setImportReport(null)} /> : null}
   </main>;
 }
 
