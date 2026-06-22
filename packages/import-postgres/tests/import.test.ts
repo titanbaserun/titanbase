@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { diagnoseSchema } from "@titanbase/core";
-import { exportPostgres } from "@titanbase/export-postgres";
+import { diagnoseSchema, diffSchemas } from "@titanbase/core";
+import { exportPostgres, generatePostgresMigrationDraft } from "@titanbase/export-postgres";
 import { exportMermaid } from "@titanbase/export-mermaid";
 import { exportPrisma } from "@titanbase/export-prisma";
 import { exportDrizzle } from "@titanbase/export-drizzle";
@@ -209,5 +209,27 @@ describe("integration", () => {
     expect(first.schema?.project.name).toBe("saas-schema");
     expect(first.schema).toEqual(second.schema);
     expect(Object.keys(first.schema!.metadata.editor.tablePositions)).toHaveLength(2);
+  });
+
+  it("diffs an imported SQL schema against a modified Titan schema", () => {
+    const result = imported(sql);
+    const modified = structuredClone(result.schema!);
+    modified.tables.find((table) => table.name === "members")!.columns.find((column) => column.name === "email")!.nullable = true;
+    modified.enums.find((item) => item.name === "plan")!.values = ["free"];
+    const diff = diffSchemas(result.schema!, modified);
+    expect(diff.changes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ entityType: "column", path: expect.stringContaining("nullable") }),
+      expect.objectContaining({ entityType: "enum_value", kind: "removed", before: "pro", destructive: true }),
+    ]));
+  });
+
+  it("generates a PostgreSQL migration draft from an imported schema", () => {
+    const result = imported(sql);
+    const modified = structuredClone(result.schema!);
+    const members = modified.tables.find((table) => table.name === "members")!;
+    members.columns.push({ id: "public.members.display_name", name: "display_name", type: "text", nullable: true, primaryKey: false, unique: false });
+    const migration = generatePostgresMigrationDraft(result.schema!, modified);
+    expect(migration.sql).toContain('ALTER TABLE "public"."members" ADD COLUMN "display_name" text;');
+    expect(migration.warnings).toEqual([]);
   });
 });

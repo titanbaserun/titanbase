@@ -33,13 +33,21 @@ Titanbase can import a local PostgreSQL `.sql` schema file directly in the brows
 
 SQL import is a local file conversion workflow. Titanbase does not connect to a live database, request credentials, execute migrations, or upload the selected file.
 
+## Schema Diff and Migration Drafts — Experimental
+
+Use **Compare** in the editor toolbar to compare the current schema with another local `.titan.json` file. Titanbase normalizes both schemas, ignores editor positions, and reports deterministic project, table, column, relation, index, enum, and enum-value changes. Potentially destructive or breaking changes are labeled explicitly.
+
+From a diff result, **Generate migration draft** creates deterministic PostgreSQL SQL for supported changes, including tables, columns, foreign keys, indexes, enum additions, renames, and comments. Destructive operations are clearly marked, while unsafe enum removals are left as warnings without generated SQL.
+
+Migration drafts are review artifacts, not production-safe migrations. Titanbase never executes them, modifies either compared file, connects to a database, or uploads schema data.
+
 ## Packages
 
 | Package | Description | Status |
 |---------|-------------|--------|
-| `@titanbase/core` | Schema types, Zod validation, diagnostics | Workspace package |
+| `@titanbase/core` | Schema types, Zod validation, diagnostics, structural diff | Workspace package |
 | `@titanbase/editor` | React visual editor component | Workspace package |
-| `@titanbase/export-postgres` | PostgreSQL DDL generator | Workspace package |
+| `@titanbase/export-postgres` | PostgreSQL DDL and migration-draft generator | Workspace package |
 | `@titanbase/export-mermaid` | Mermaid ER diagram generator | Workspace package |
 | `@titanbase/export-prisma` | Prisma schema generator | Workspace package |
 | `@titanbase/export-drizzle` | Drizzle PostgreSQL schema generator | Workspace package |
@@ -67,6 +75,8 @@ import { SchemaEditor } from "@titanbase/editor";
 - Tables, columns, relations, indexes, enums
 - Save/load `.titan.json` files
 - Import local PostgreSQL `.sql` schema files
+- Compare two `.titan.json` schemas locally
+- Generate and download local PostgreSQL migration drafts
 - Export Titan JSON
 - Export PostgreSQL SQL
 - Export Mermaid ER diagrams

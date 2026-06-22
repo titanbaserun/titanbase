@@ -1,6 +1,6 @@
 {
   "name": "@titanbase/export-postgres",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "PostgreSQL DDL code generator for Titanbase schemas.",
   "license": "Apache-2.0",
   "author": "Titanbase Contributors",

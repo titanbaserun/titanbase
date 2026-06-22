@@ -1,6 +1,6 @@
 {
   "name": "@titanbase/import-postgres",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Local PostgreSQL DDL importer for Titanbase schemas.",
   "license": "Apache-2.0",
   "author": "Titanbase Contributors",

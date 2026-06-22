@@ -20,7 +20,7 @@ This roadmap describes the current direction, not a fixed release schedule. Prio
 - [x] Add Mermaid, Prisma, and Drizzle exporters with focused tests.
 - [ ] Document the `.titan.json` format.
 - [x] Add the first local PostgreSQL SQL import foundation.
-- [ ] Add schema diff foundations.
+- [x] Add schema diff foundations.
 - [ ] Package the proven local workflow as a desktop application.
 - [ ] Add CLI and automation workflows after the public APIs stabilize.
 
@@ -145,13 +145,13 @@ This roadmap describes the current direction, not a fixed release schedule. Prio
 
 ### Diff and Migration Foundations
 
-- [ ] Structural schema diff engine.
-- [ ] Visual added, removed, and changed object states.
-- [ ] Compare two `.titan.json` files.
-- [ ] Migration draft preview.
-- [ ] Destructive-change warnings.
-- [ ] Stable object matching and rename detection.
-- [ ] Export migration draft as PostgreSQL SQL.
+- [x] Structural schema diff engine.
+- [x] Visual added, removed, and changed object states.
+- [x] Compare two `.titan.json` files.
+- [x] PostgreSQL migration draft preview.
+- [x] Destructive-change warnings.
+- [x] Stable object matching and conservative rename detection.
+- [x] Export migration draft as PostgreSQL SQL.
 
 ### Schema Format
 

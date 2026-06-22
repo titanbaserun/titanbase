@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0]
+
+### Added
+
+#### Schema Diff
+- Added the framework-independent `diffSchemas()` API to `@titanbase/core`.
+- Added deterministic project, table, column, relation, index, enum, and enum-value changes with stable matching and conservative rename detection.
+- Added destructive and breaking change classification, matching warnings, summary counters, and semantic metadata filtering.
+- Added a local Compare action and schema diff modal with grouped changes, severity badges, before/after values, object selection, and invalid-file handling.
+
+#### PostgreSQL Migration Drafts
+- Added the deterministic `generatePostgresMigrationDraft()` API to `@titanbase/export-postgres`.
+- Added draft SQL for table, column, constraint, foreign-key, index, enum-addition, rename, and comment changes.
+- Added destructive and breaking metadata plus explicit review warnings for data loss, casts, inferred constraint names, locking, and enum limitations.
+- Added a migration preview flow from Schema Diff with warning review, SQL copy, and `.sql` download actions.
+- Added focused migration-draft tests and PostgreSQL import-to-migration integration coverage.
+
+### Changed
+
+- Extracted shared PostgreSQL identifier, type, column, table, index, and foreign-key formatting helpers for consistent full exports and migration drafts.
+
 ## [0.4.0]
 
 ### Added
@@ -136,6 +157,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Next.js host application (`apps/web`).
 - Five starter example schemas: blog, ecommerce, messaging, project-management, saas.
 
+[0.5.0]: https://github.com/titanbaserun/titanbase/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/titanbaserun/titanbase/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/titanbaserun/titanbase/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/titanbaserun/titanbase/compare/v0.1.0...v0.2.0

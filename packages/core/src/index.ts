@@ -50,3 +50,15 @@ export { createEmptySchema, type EmptySchemaOptions } from "./create-empty-schem
 
 // Shared result contract for pure code exporters.
 export { type ExportFile, type ExportWarning, type ExportResult } from "./export-types";
+
+// Structural schema diff for local review and future automation workflows.
+export {
+  diffSchemas,
+  type DiffChangeKind,
+  type DiffEntityType,
+  type DiffSeverity,
+  type SchemaDiffChange,
+  type SchemaDiffSummary,
+  type SchemaDiffWarning,
+  type SchemaDiffResult,
+} from "./diff";

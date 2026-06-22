@@ -1,72 +1,9 @@
-import type { ReferentialAction, TitanColumn, TitanSchema } from "@titanbase/core";
+import type { TitanSchema } from "@titanbase/core";
+import { postgresCreateTableSql, postgresForeignKeySql, postgresIndexSql, postgresLiteral, qualifiedPostgresName, quotePostgresIdentifier } from "./format";
 
 export interface PostgresExportResult {
   sql: string;
   warnings: string[];
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const quote = (value: string) => `"${value.replaceAll('"', '""')}"`;
-const literal = (value: string) => `'${value.replaceAll("'", "''")}'`;
-const qualified = (schema: string | undefined, name: string) => schema ? `${quote(schema)}.${quote(name)}` : quote(name);
-const action = (value: ReferentialAction) => value.replace("-", " ").toUpperCase();
-
-const typeMap: Record<string, string> = {
-  string: "text",
-  text: "text",
-  uuid: "uuid",
-  integer: "integer",
-  int: "integer",
-  smallint: "smallint",
-  bigint: "bigint",
-  serial: "serial",
-  bigserial: "bigserial",
-  boolean: "boolean",
-  bool: "boolean",
-  decimal: "numeric",
-  numeric: "numeric",
-  real: "real",
-  float: "double precision",
-  "double precision": "double precision",
-  date: "date",
-  datetime: "timestamp",
-  timestamp: "timestamp",
-  timestamptz: "timestamptz",
-  time: "time",
-  timetz: "timetz",
-  interval: "interval",
-  json: "jsonb",
-  jsonb: "jsonb",
-  bytea: "bytea",
-  inet: "inet",
-  cidr: "cidr",
-  macaddr: "macaddr",
-  money: "money",
-};
-
-const indexMethods = new Set(["btree", "hash", "gin", "gist", "brin"]);
-
-// ---------------------------------------------------------------------------
-// Column SQL generation
-// ---------------------------------------------------------------------------
-
-function columnSql(column: TitanColumn, enumNames: Map<string, string>, warnings: string[]) {
-  const normalizedType = column.type.toLowerCase();
-  const enumName = enumNames.get(normalizedType);
-  const sqlType = column.nativeType ?? typeMap[normalizedType] ?? (enumName ? quote(enumName) : undefined);
-
-  if (!sqlType) {
-    warnings.push(`Column "${column.name}": unknown type "${column.type}"; emitted as text.`);
-  }
-
-  const parts = [quote(column.name), sqlType ?? "text"];
-  if (!column.nullable) parts.push("NOT NULL");
-  if (column.unique && !column.primaryKey) parts.push("UNIQUE");
-  if (column.default) parts.push(`DEFAULT ${column.default}`);
-  return parts.join(" ");
 }
 
 // ---------------------------------------------------------------------------
@@ -99,61 +36,43 @@ export function exportPostgres(schema: TitanSchema): PostgresExportResult {
   // Collect schemas used by tables
   const schemas = new Set(schema.tables.map((t) => t.schema).filter((s): s is string => Boolean(s)));
   for (const schemaName of [...schemas].sort()) {
-    statements.push(`CREATE SCHEMA IF NOT EXISTS ${quote(schemaName)};`);
+    statements.push(`CREATE SCHEMA IF NOT EXISTS ${quotePostgresIdentifier(schemaName)};`);
   }
   if (schemas.size > 0) statements.push("");
 
   // Enums
-  const enumNames = new Map(schema.enums.map((e) => [e.name.toLowerCase(), e.name]));
   for (const item of schema.enums) {
-    statements.push(`CREATE TYPE ${quote(item.name)} AS ENUM (${item.values.map(literal).join(", ")});`);
-    if (item.description) statements.push(`COMMENT ON TYPE ${quote(item.name)} IS ${literal(item.description)};`);
+    statements.push(`CREATE TYPE ${quotePostgresIdentifier(item.name)} AS ENUM (${item.values.map(postgresLiteral).join(", ")});`);
+    if (item.description) statements.push(`COMMENT ON TYPE ${quotePostgresIdentifier(item.name)} IS ${postgresLiteral(item.description)};`);
     statements.push("");
   }
 
   // Tables
   const tableById = new Map(schema.tables.map((t) => [t.id, t]));
   for (const table of schema.tables) {
-    const definitions = table.columns.map((col) => `  ${columnSql(col, enumNames, warnings)}`);
-    const primaryColumns = table.columns.filter((c) => c.primaryKey).map((c) => quote(c.name));
-    if (primaryColumns.length) {
-      definitions.push(`  CONSTRAINT ${quote(`${table.name}_pkey`)} PRIMARY KEY (${primaryColumns.join(", ")})`);
-    }
-
-    statements.push(`CREATE TABLE ${qualified(table.schema, table.name)} (\n${definitions.join(",\n")}\n);`);
+    const createTable = postgresCreateTableSql(table, schema.enums);
+    statements.push(createTable.sql);
+    warnings.push(...createTable.warnings);
 
     if (table.description) {
-      statements.push(`COMMENT ON TABLE ${qualified(table.schema, table.name)} IS ${literal(table.description)};`);
+      statements.push(`COMMENT ON TABLE ${qualifiedPostgresName(table.schema, table.name)} IS ${postgresLiteral(table.description)};`);
     }
 
     for (const column of table.columns) {
       if (column.description) {
-        statements.push(`COMMENT ON COLUMN ${qualified(table.schema, table.name)}.${quote(column.name)} IS ${literal(column.description)};`);
+        statements.push(`COMMENT ON COLUMN ${qualifiedPostgresName(table.schema, table.name)}.${quotePostgresIdentifier(column.name)} IS ${postgresLiteral(column.description)};`);
       }
     }
 
     // Indexes
     for (const index of table.indexes) {
-      const columns = index.columns
-        .map((colId) => table.columns.find((c) => c.id === colId)?.name)
-        .filter((name): name is string => Boolean(name));
-
-      if (columns.length !== index.columns.length) {
-        warnings.push(`Index "${index.name}": skipped because one or more columns are missing.`);
-        continue;
-      }
-
-      const method = index.method?.toLowerCase();
-      if (method && !indexMethods.has(method)) {
-        warnings.push(`Index "${index.name}": unsupported method "${index.method}"; emitted without USING.`);
-      }
-
-      const using = method && indexMethods.has(method) ? ` USING ${method}` : "";
-      const where = index.where ? ` WHERE ${index.where}` : "";
-      statements.push(`CREATE ${index.unique ? "UNIQUE " : ""}INDEX ${quote(index.name)} ON ${qualified(table.schema, table.name)}${using} (${columns.map(quote).join(", ")})${where};`);
+      const formatted = postgresIndexSql(table, index);
+      if (!formatted.sql) { if (formatted.warning) warnings.push(formatted.warning); continue; }
+      statements.push(formatted.sql);
+      if (formatted.warning) warnings.push(formatted.warning);
 
       if (index.description) {
-        statements.push(`COMMENT ON INDEX ${qualified(table.schema, index.name)} IS ${literal(index.description)};`);
+        statements.push(`COMMENT ON INDEX ${qualifiedPostgresName(table.schema, index.name)} IS ${postgresLiteral(index.description)};`);
       }
     }
 
@@ -170,26 +89,16 @@ export function exportPostgres(schema: TitanSchema): PostgresExportResult {
       continue;
     }
 
-    const fromColumns = relation.from.columns
-      .map((id) => fromTable.columns.find((c) => c.id === id)?.name)
-      .filter((name): name is string => Boolean(name));
-    const toColumns = relation.to.columns
-      .map((id) => toTable.columns.find((c) => c.id === id)?.name)
-      .filter((name): name is string => Boolean(name));
-
-    if (fromColumns.length !== relation.from.columns.length || toColumns.length !== relation.to.columns.length) {
-      warnings.push(`Relation "${relation.name}": skipped because a referenced column is missing.`);
-      continue;
-    }
-
-    const onDelete = relation.onDelete ? ` ON DELETE ${action(relation.onDelete)}` : "";
-    const onUpdate = relation.onUpdate ? ` ON UPDATE ${action(relation.onUpdate)}` : "";
-    statements.push(`ALTER TABLE ${qualified(fromTable.schema, fromTable.name)} ADD CONSTRAINT ${quote(relation.name)} FOREIGN KEY (${fromColumns.map(quote).join(", ")}) REFERENCES ${qualified(toTable.schema, toTable.name)} (${toColumns.map(quote).join(", ")})${onDelete}${onUpdate};`);
+    const formatted = postgresForeignKeySql(relation, fromTable, toTable);
+    if (!formatted.sql) { if (formatted.warning) warnings.push(formatted.warning); continue; }
+    statements.push(formatted.sql);
 
     if (relation.description) {
-      statements.push(`COMMENT ON CONSTRAINT ${quote(relation.name)} ON ${qualified(fromTable.schema, fromTable.name)} IS ${literal(relation.description)};`);
+      statements.push(`COMMENT ON CONSTRAINT ${quotePostgresIdentifier(relation.name)} ON ${qualifiedPostgresName(fromTable.schema, fromTable.name)} IS ${postgresLiteral(relation.description)};`);
     }
   }
 
   return { sql: `${statements.join("\n").trim()}\n`, warnings };
 }
+
+export { generatePostgresMigrationDraft, type GeneratePostgresMigrationDraftOptions, type MigrationDraftResult, type MigrationDraftStatement, type MigrationDraftWarning } from "./migration-draft";
