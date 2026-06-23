@@ -1,0 +1,80 @@
+{
+  "name": "titanbase-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Free and open-source Titanbase desktop schema designer.",
+  "license": "Apache-2.0",
+  "author": "Titanbase Contributors",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "main": "out/main/main.js",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "package": "electron-builder --dir",
+    "dist": "electron-builder",
+    "clean": "rm -rf out dist"
+  },
+  "dependencies": {
+    "@titanbase/core": "workspace:*",
+    "@titanbase/editor": "workspace:*",
+    "@titanbase/export-drizzle": "workspace:*",
+    "@titanbase/export-mermaid": "workspace:*",
+    "@titanbase/export-postgres": "workspace:*",
+    "@titanbase/export-prisma": "workspace:*",
+    "@titanbase/import-postgres": "workspace:*",
+    "@titanbase/ui": "workspace:*",
+    "@xyflow/react": "^12.8.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.0.0",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.2.0",
+    "electron": "42.4.1",
+    "electron-builder": "26.15.3",
+    "typescript": "^5.9.3",
+    "vite": "7.3.5",
+    "vitest": "^3.2.4"
+  },
+  "build": {
+    "appId": "run.titanbase.desktop",
+    "productName": "Titanbase",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "build/**/*",
+      "out/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development",
+      "icon": "build/icon.png"
+    }
+  }
+}

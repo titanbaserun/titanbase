@@ -7,6 +7,7 @@ interface MigrationDraftModalProps {
   selectedName: string;
   result: MigrationDraftResult;
   onClose: () => void;
+  onDownload?: (result: MigrationDraftResult) => void;
 }
 
 async function copyText(content: string) {
@@ -23,8 +24,9 @@ async function copyText(content: string) {
   }
 }
 
-export function MigrationDraftModal({ currentName, selectedName, result, onClose }: MigrationDraftModalProps) {
+export function MigrationDraftModal({ currentName, selectedName, result, onClose, onDownload }: MigrationDraftModalProps) {
   const download = () => {
+    if (onDownload) return onDownload(result);
     const url = URL.createObjectURL(new Blob([result.sql], { type: "text/sql;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;

@@ -18,5 +18,5 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body className="min-h-screen bg-[#f8faf8] text-[#172019] antialiased">{children}</body></html>;
+  return <html lang="en"><body>{children}</body></html>;
 }

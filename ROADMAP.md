@@ -21,7 +21,7 @@ This roadmap describes the current direction, not a fixed release schedule. Prio
 - [ ] Document the `.titan.json` format.
 - [x] Add the first local PostgreSQL SQL import foundation.
 - [x] Add schema diff foundations.
-- [ ] Package the proven local workflow as a desktop application.
+- [x] Package the proven local workflow as a desktop application.
 - [ ] Add CLI and automation workflows after the public APIs stabilize.
 
 ---
@@ -178,18 +178,30 @@ This roadmap describes the current direction, not a fixed release schedule. Prio
 
 - [x] Titanbase Desktop should be free and open source.
 - [x] Desktop app should not require an account or cloud backend.
-- [ ] Evaluate Electron and Tauri against Titanbase requirements.
-- [ ] Package the editor as a desktop application.
-- [ ] Open and save `.titan.json` directly from the filesystem.
-- [ ] Recent files.
-- [ ] Drag and drop `.titan.json` and `.sql` files.
-- [ ] Native export actions.
-- [ ] Native app menu and keyboard shortcuts.
+- [x] Select Electron for the first desktop shell.
+- [x] Add the desktop app to the monorepo as `apps/desktop`.
+- [x] Launch the desktop app with the shared local editor renderer.
+- [x] Use a bundled local renderer in production instead of the hosted website.
+- [x] Package the editor as a desktop application.
+- [x] Larger default desktop window sizing.
+- [x] Draggable desktop topbar/titlebar regions.
+- [x] App icons for macOS, Windows, and Linux packaging.
+- [x] Package config for macOS, Windows, and Linux targets.
+- [x] Open and save `.titan.json` directly from the filesystem.
+- [x] Import local PostgreSQL `.sql` files.
+- [x] Recent files.
+- [x] Drag and drop `.titan.json` and `.sql` files.
+- [x] Native export actions.
+- [x] Native app menu and keyboard shortcuts.
+- [x] Unsaved changes prompts for new, open, import, drag/drop, recent files, and close.
 - [ ] File-change detection and reload prompts.
 - [ ] Crash-safe local drafts.
-- [ ] Offline-first local workflow.
-- [ ] macOS, Windows, and Linux release builds.
-- [ ] Signed releases and automatic update strategy.
+- [x] Offline-first local workflow.
+- [ ] Full tested macOS, Windows, and Linux release distribution.
+- [ ] Polished installers.
+- [ ] Signed releases.
+- [ ] Notarization.
+- [ ] Automatic update strategy.
 
 ---
 

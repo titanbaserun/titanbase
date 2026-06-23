@@ -12,6 +12,10 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "desktop:dev": "pnpm --filter titanbase-desktop dev",
+    "desktop:build": "pnpm --filter titanbase-desktop build",
+    "desktop:package": "pnpm --filter titanbase-desktop package",
+    "desktop:dist": "pnpm --filter titanbase-desktop dist",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "clean": "turbo clean"

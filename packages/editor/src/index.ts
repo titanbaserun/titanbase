@@ -29,3 +29,14 @@ export { getSchemaStatistics, isForeignKeyColumn, isIndexedColumn, compactCardin
 export { type SchemaTemplate } from "./template-types";
 export { fallbackEditorSettings, type EditorAppSettings, type ThemePreference, type ResolvedTheme } from "./settings";
 export { createExportFilename, slugifyExportName, type ExportTarget } from "./export-utils";
+export {
+  type TitanbaseRuntime,
+  type DesktopSourceKind,
+  type DesktopMenuAction,
+  type RuntimeFileResult,
+  type RuntimeSaveResult,
+  type RuntimeRecentFile,
+  type RuntimeDocumentState,
+  type RuntimeExportFileArgs,
+  type TitanbaseFileAdapter,
+} from "./runtime";

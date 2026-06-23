@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## titanbase-desktop@0.1.0 - Desktop App
+
+### Changed
+
+- Released the Electron desktop package as `titanbase-desktop@0.1.0`.
+
+
+#### Desktop App
+- Added the free OSS `apps/desktop` Electron application using the shared visual editor and schema packages.
+- Added file-backed open, save, Save As, SQL import, compare, migration-draft export, and all schema export workflows through native dialogs.
+- Added a narrow typed preload bridge with context isolation, renderer sandboxing, and Node integration disabled.
+- Added native application menus and shortcuts, recent files, OS file-open events, drag and drop, unsaved-change prompts, and safe close handling.
+- Added deterministic desktop file-state and filesystem safety helper tests.
+- Added a larger default desktop window, draggable topbar regions, runtime app icons, and Electron Builder targets for macOS `dmg`/`zip`, Windows `nsis`, and Linux `AppImage`/`deb`.
+- Added dedicated desktop icon assets in `apps/desktop/build`.
+- Added desktop-native recent-file menu routing that preserves renderer unsaved-change prompts before opening files.
+- Added desktop app documentation covering status, local-first behavior, security model, limitations, and roadmap.
+- Added a shared desktop file adapter to `@titanbase/editor` while preserving existing browser picker and download behavior.
+- Clarified that Titanbase Desktop loads its bundled local renderer in production and does not depend on the hosted website.
+- Changed desktop Save As defaults to use a slugified project-name `.titan.json` filename.
+- Added source-kind context to the editor file status so desktop users can distinguish blank, template, `.titan.json`, and SQL-imported schemas.
+
+
 ## [0.5.0]
 
 ### Added

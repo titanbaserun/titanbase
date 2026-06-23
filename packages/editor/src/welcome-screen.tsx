@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, BookOpen, Database, FilePlus, FileSql, FolderOpen, Layout, Table } from "@phosphor-icons/react";
 import { useState } from "react";
 import type { SchemaTemplate } from "./template-types";
+import type { RuntimeRecentFile } from "./runtime";
 
 interface WelcomeScreenProps {
   templates: SchemaTemplate[];
@@ -9,6 +10,9 @@ interface WelcomeScreenProps {
   onOpen: () => void;
   onImportSql: () => void;
   onTemplate: (template: SchemaTemplate) => void;
+  recentFiles?: RuntimeRecentFile[];
+  onRecentFile?: (filePath: string) => void;
+  onClearRecentFiles?: () => void;
 }
 
 function SchemaPreview() {
@@ -22,7 +26,7 @@ function SchemaPreview() {
   </div>;
 }
 
-export function WelcomeScreen({ templates, initialShowTemplates = false, onBlank, onOpen, onImportSql, onTemplate }: WelcomeScreenProps) {
+export function WelcomeScreen({ templates, initialShowTemplates = false, onBlank, onOpen, onImportSql, onTemplate, recentFiles = [], onRecentFile, onClearRecentFiles }: WelcomeScreenProps) {
   const [showTemplates, setShowTemplates] = useState(initialShowTemplates);
 
   return <main className="welcome-screen">
@@ -80,6 +84,7 @@ export function WelcomeScreen({ templates, initialShowTemplates = false, onBlank
             <span className="welcome-choice-cta">Import SQL <ArrowRight size={13} weight="bold" /></span>
           </button>
         </div>
+        {recentFiles.length ? <section className="welcome-recent"><header><div><strong>Recent schemas</strong><small>Open a file from this device.</small></div>{onClearRecentFiles ? <button type="button" onClick={onClearRecentFiles}>Clear</button> : null}</header><div>{recentFiles.map((file) => <button key={file.filePath} type="button" onClick={() => onRecentFile?.(file.filePath)} title={file.filePath}><FolderOpen size={16} /><span><strong>{file.displayName}</strong><small>{file.filePath}</small></span></button>)}</div></section> : null}
       </>}
     </section>
     <footer className="welcome-footer">Open-source core · No account required · Your schema stays on this device</footer>

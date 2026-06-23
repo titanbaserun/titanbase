@@ -9,6 +9,10 @@ dist/
 out/
 build/
 *.tsbuildinfo
+!apps/desktop/build/
+!apps/desktop/build/icon.icns
+!apps/desktop/build/icon.ico
+!apps/desktop/build/icon.png
 
 # Turbo
 .turbo/
@@ -39,6 +43,8 @@ pnpm-debug.log*
 # Next.js
 apps/web/.next/
 apps/web/out/
+apps/desktop/release/
+apps/desktop/dist/
 
 # Misc
 *.tgz

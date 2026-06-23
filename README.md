@@ -12,6 +12,23 @@ pnpm dev
 
 Open `http://localhost:3000/editor`.
 
+### Desktop app
+
+```bash
+pnpm --filter titanbase-desktop dev       # Launch Electron in development
+pnpm --filter titanbase-desktop build     # Build main, preload, and renderer
+pnpm --filter titanbase-desktop package   # Create an unsigned directory package
+pnpm --filter titanbase-desktop dist      # Create unsigned distributable builds
+```
+
+Titanbase Desktop is the free OSS editor packaged as an MVP / experimental offline-first Electron application. It is a separate local app in `apps/desktop`, not a wrapper around `https://www.titanbase.run/editor`. Production desktop builds load the bundled renderer from disk, reuse the shared monorepo packages, and work independently from the website. Desktop development supports Node `>=22.12.0`, matching the current Electron and Vite requirements.
+
+Desktop opens and saves local `.titan.json` files, imports local PostgreSQL `.sql`, exports local files through native dialogs, compares schemas, previews PostgreSQL migration drafts, tracks recent files, and uses native menus and shortcuts. No account, backend, credentials, live database connection, or migration execution is required.
+
+Packaging is configured for macOS (`dmg`, `zip`), Windows (`nsis`), and Linux (`AppImage`, `deb`) using Titanbase app icons. Builds are currently unsigned, not notarized, and do not include automatic updates.
+
+See [Desktop App](docs/desktop-app.md) for the current desktop MVP scope, security model, and limitations.
+
 ## Commands
 
 ```bash
@@ -54,7 +71,7 @@ Migration drafts are review artifacts, not production-safe migrations. Titanbase
 | `@titanbase/import-postgres` | PostgreSQL DDL to normalized `TitanSchema` importer | Workspace package |
 | `@titanbase/ui` | Shared UI primitives | Workspace package |
 
-`apps/web` is the local editor host app (Next.js, not published to npm).
+`apps/web` is the browser editor host. `apps/desktop` is the Electron shell; both reuse `@titanbase/editor`.
 
 ## Embedding
 
@@ -85,6 +102,7 @@ import { SchemaEditor } from "@titanbase/editor";
 - Review export warnings for unsupported or ambiguous schema features
 - Validate schema with diagnostics
 - Undo/redo, keyboard shortcuts, dark mode
+- Free offline-first Electron desktop app
 - CLI (planned)
 - Export to DBML (planned)
 - Store in Git
@@ -116,6 +134,7 @@ packages/
   ui/                Button, Input, Select, Badge, etc.
 apps/
   web/               Local editor host app (Next.js, not a published package)
+  desktop/           Offline Electron app with main/preload shell and local Vite renderer
 examples/            Sample schemas (blog, ecommerce, saas, messaging, PM)
 ```
 
@@ -140,9 +159,8 @@ examples/            Sample schemas (blog, ecommerce, saas, messaging, PM)
                │              └─────────────────────────┘
                │
    ┌───────────▼───────────┐
-   │  @titanbase/web        │   ← open source host app
-   │  or                    │
-   │  titanbase-cloud       │   ← private, adds auth/sync/AI
+   │  apps/web              │   ← browser host
+   │  apps/desktop          │   ← Electron host
    └────────────────────────┘
 ```
 

@@ -11,7 +11,7 @@ import { exportPrisma } from "@titanbase/export-prisma";
 import { importPostgresSql, type ImportWarning } from "@titanbase/import-postgres";
 import { Badge, Button, Input } from "@titanbase/ui";
 import { ExportModal } from "./export-modal";
-import { createExportFilename, type ExportTarget } from "./export-utils";
+import { createExportFilename, slugifyExportName, type ExportTarget } from "./export-utils";
 import { SchemaInspector } from "./inspectors";
 import { LeaveDialog } from "./leave-dialog";
 import { ProjectOverview } from "./project-overview";
@@ -26,6 +26,7 @@ import { ImportResultDialog } from "./import-result-dialog";
 import { fallbackEditorSettings, type EditorAppSettings, type ResolvedTheme } from "./settings";
 import { DiffModal } from "./diff-modal";
 import { MigrationDraftModal } from "./migration-draft-modal";
+import type { DesktopSourceKind, RuntimeFileResult, RuntimeRecentFile, TitanbaseFileAdapter } from "./runtime";
 
 const nodeTypes = { tableNode: TableNodeView };
 const STORAGE_KEY = "titanbase:schema";
@@ -53,6 +54,16 @@ function inspectorContextTitle(selection: EditorSelection) {
   return titles[selection.kind];
 }
 
+function sourceKindLabel(sourceKind: DesktopSourceKind) {
+  const labels: Record<DesktopSourceKind, string> = {
+    blank: "Blank",
+    template: "Template",
+    "titan-json": ".titan.json",
+    "postgres-sql": "SQL import",
+  };
+  return labels[sourceKind];
+}
+
 function autoLayout(schema: TitanSchema): Record<string, { x: number; y: number }> {
   const cols = Math.max(3, Math.ceil(Math.sqrt(schema.tables.length)));
   const gapX = 380;
@@ -67,14 +78,16 @@ function autoLayout(schema: TitanSchema): Record<string, { x: number; y: number 
 
 export interface SchemaEditorProps {
   initialSchema: TitanSchema;
+  initialFilename?: string;
   templates?: SchemaTemplate[];
   settings?: EditorAppSettings;
   resolvedTheme?: ResolvedTheme;
   onSettingsChange?: (settings: EditorAppSettings) => void;
   onResetSettings?: () => void;
+  fileAdapter?: TitanbaseFileAdapter;
 }
 
-function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackEditorSettings, resolvedTheme = "light", onSettingsChange, onResetSettings }: SchemaEditorProps) {
+function SchemaEditorInner({ initialSchema, initialFilename, templates = [], settings = fallbackEditorSettings, resolvedTheme = "light", onSettingsChange, onResetSettings, fileAdapter }: SchemaEditorProps) {
   const normalizedInitial = useMemo(() => normalizeSchema(initialSchema), [initialSchema]);
   const history = useSchemaHistory(normalizedInitial);
   const { schema } = history;
@@ -82,7 +95,10 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
   const [multiSelection, setMultiSelection] = useState<MultiSelection>(emptyMultiSelection);
   const [preview, setPreview] = useState<ExportTarget | null>(null);
   const [notice, setNotice] = useState("Saved");
-  const [filename, setFilename] = useState(schema.tables.length ? `${schema.project.id}.titan.json` : "untitled.titan.json");
+  const [filename, setFilename] = useState(initialFilename ?? (schema.tables.length ? `${schema.project.id}.titan.json` : "untitled.titan.json"));
+  const [currentFilePath, setCurrentFilePath] = useState<string>();
+  const [sourceKind, setSourceKind] = useState<DesktopSourceKind>(schema.tables.length ? "template" : "blank");
+  const [recentFiles, setRecentFiles] = useState<RuntimeRecentFile[]>([]);
   const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(schema));
   const [requiresJsonSave, setRequiresJsonSave] = useState(false);
   const [showWelcome, setShowWelcome] = useState(schema.tables.length === 0);
@@ -106,6 +122,7 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
   const searchInput = useRef<HTMLInputElement>(null);
   const dragStart = useRef<TitanSchema | null>(null);
   const replaceAction = useRef<(() => void) | null>(null);
+  const saveActionRef = useRef<() => Promise<boolean>>(async () => false);
   const schemaRef = useRef(schema);
   schemaRef.current = schema;
   const reactFlow = useReactFlow();
@@ -138,14 +155,24 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
   const saveStatus = requiresJsonSave ? "Unsaved .titan.json" : isDirty ? "Unsaved changes" : notice === "Saved locally" ? "Saved locally" : "Saved";
 
   useEffect(() => {
-    if (!settings.autosave || !isDirty || showWelcome) return;
+    if (!fileAdapter) return;
+    fileAdapter.updateDocumentState({ ...(currentFilePath ? { currentFilePath } : {}), currentFileName: filename, isDirty, sourceKind });
+  }, [currentFilePath, fileAdapter, filename, isDirty, sourceKind]);
+
+  useEffect(() => {
+    if (!fileAdapter) return;
+    void fileAdapter.getRecentFiles().then(setRecentFiles);
+  }, [fileAdapter]);
+
+  useEffect(() => {
+    if (fileAdapter || !settings.autosave || !isDirty || showWelcome) return;
     const timeout = window.setTimeout(() => {
       localStorage.setItem(STORAGE_KEY, currentSnapshot);
       if (!requiresJsonSave) setSavedSnapshot(currentSnapshot);
       setNotice(requiresJsonSave ? "Local draft saved" : "Saved locally");
     }, 700);
     return () => window.clearTimeout(timeout);
-  }, [currentSnapshot, isDirty, requiresJsonSave, settings.autosave, showWelcome]);
+  }, [currentSnapshot, fileAdapter, isDirty, requiresJsonSave, settings.autosave, showWelcome]);
 
   useEffect(() => {
     if (!settings.autoFitViewOnLoad || showWelcome || !schema.tables.length) return;
@@ -241,6 +268,10 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
       // Ctrl/Cmd+S: save
       if (meta && event.key === "s" && !isInput) {
         event.preventDefault();
+        if (fileAdapter) {
+          void saveActionRef.current();
+          return;
+        }
         const serialized = JSON.stringify(schemaRef.current);
         localStorage.setItem(STORAGE_KEY, serialized);
         setSavedSnapshot(serialized);
@@ -249,7 +280,7 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [history, selection, multiSelection, preview, searchOpen, leaveOpen, replaceOpen, importReport, diffReport, migrationDraft, settingsOpen, inspectorVisible, inspectorPinnedOpen, settings, onSettingsChange]);
+  }, [fileAdapter, history, selection, multiSelection, preview, searchOpen, leaveOpen, replaceOpen, importReport, diffReport, migrationDraft, settingsOpen, inspectorVisible, inspectorPinnedOpen, settings, onSettingsChange]);
 
   const diagnostics = useMemo(() => diagnoseSchema(schema), [schema]);
   const diagnosticErrors = useMemo(() => diagnostics.filter((issue) => issue.severity === "error"), [diagnostics]);
@@ -369,17 +400,28 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
 
   const requestReplace = (action: () => void) => {
     if (showWelcome || !isDirty) return action();
+    if (fileAdapter) {
+      void (async () => {
+        const choice = await fileAdapter.showUnsavedChangesDialog();
+        if (choice === "cancel") return;
+        if (choice === "save" && !(await saveActionRef.current())) return;
+        action();
+      })();
+      return;
+    }
     replaceAction.current = action;
     setReplaceOpen(true);
   };
 
-  const replaceProject = (nextSchema: TitanSchema, nextFilename: string, nextNotice: string, markDirty = false) => {
+  const replaceProject = (nextSchema: TitanSchema, nextFilename: string, nextNotice: string, markDirty = false, nextFilePath?: string, nextSourceKind: DesktopSourceKind = markDirty ? "postgres-sql" : "titan-json") => {
     const normalized = normalizeSchema(nextSchema);
     history.reset(normalized);
     schemaRef.current = normalized;
     setSelection(null);
     setMultiSelection(emptyMultiSelection);
     setFilename(nextFilename);
+    setCurrentFilePath(nextFilePath);
+    setSourceKind(nextSourceKind);
     setSavedSnapshot(markDirty ? "" : JSON.stringify(normalized));
     setRequiresJsonSave(markDirty);
     setNotice(nextNotice);
@@ -391,11 +433,11 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
   };
 
   const startBlank = () => {
-    requestReplace(() => replaceProject(createEmptySchema(), "untitled.titan.json", "Saved"));
+    requestReplace(() => replaceProject(createEmptySchema(), "untitled.titan.json", "New schema", true, undefined, "blank"));
   };
 
   const startTemplate = (template: SchemaTemplate) => {
-    requestReplace(() => replaceProject(template.schema, `${template.id}.titan.json`, "Saved"));
+    requestReplace(() => replaceProject(template.schema, `${template.id}.titan.json`, "Template loaded", true, undefined, "template"));
   };
 
   const showTemplatePicker = () => {
@@ -403,14 +445,23 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
   };
 
   const requestOpenJson = () => {
-    requestReplace(() => jsonFileInput.current?.click());
+    requestReplace(() => {
+      if (!fileAdapter) return jsonFileInput.current?.click();
+      void fileAdapter.openTitanJson().then(openRuntimeJson);
+    });
   };
 
   const requestImportSql = () => {
-    requestReplace(() => sqlFileInput.current?.click());
+    requestReplace(() => {
+      if (!fileAdapter) return sqlFileInput.current?.click();
+      void fileAdapter.openPostgresSql().then(importRuntimeSql);
+    });
   };
 
-  const requestCompare = () => compareFileInput.current?.click();
+  const requestCompare = () => {
+    if (!fileAdapter) return compareFileInput.current?.click();
+    void fileAdapter.compareTitanJson().then(compareRuntimeJson);
+  };
 
   const saveLocal = () => {
     const serialized = JSON.stringify(schema);
@@ -418,6 +469,25 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     if (!requiresJsonSave) setSavedSnapshot(serialized);
     setNotice(requiresJsonSave ? "Local draft saved" : "Saved locally");
   };
+
+  const saveCurrent = async (saveAs = false) => {
+    if (!fileAdapter) { saveLocal(); return true; }
+    const content = JSON.stringify(schemaRef.current, null, 2);
+    const result = !saveAs && currentFilePath
+      ? await fileAdapter.saveTitanJson({ filePath: currentFilePath, content })
+      : await fileAdapter.saveTitanJsonAs({ defaultName: `${slugifyExportName(schemaRef.current.project.name)}.titan.json`, content });
+    if (result.canceled) return false;
+    if (result.error || !result.filePath) { setNotice(result.error ?? "Could not save schema"); return false; }
+    setCurrentFilePath(result.filePath);
+    setFilename(result.fileName ?? result.filePath.split(/[\\/]/).pop() ?? filename);
+    setSavedSnapshot(JSON.stringify(schemaRef.current));
+    setRequiresJsonSave(false);
+    setSourceKind("titan-json");
+    setNotice("Saved");
+    setRecentFiles(await fileAdapter.getRecentFiles());
+    return true;
+  };
+  saveActionRef.current = () => saveCurrent(false);
 
   const loadLocal = () => {
     const value = localStorage.getItem(STORAGE_KEY);
@@ -440,6 +510,16 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     event.target.value = "";
   };
 
+  function openRuntimeJson(file: RuntimeFileResult) {
+    if (file.canceled) return;
+    if (file.error || !file.content) { setNotice(file.error ?? "Could not open schema"); return; }
+    try {
+      const loaded = normalizeSchema(JSON.parse(file.content));
+      replaceProject(loaded, file.fileName ?? `${loaded.project.id}.titan.json`, "Opened", false, file.filePath, "titan-json");
+      if (fileAdapter) void fileAdapter.getRecentFiles().then(setRecentFiles);
+    } catch (error) { setNotice(error instanceof Error ? error.message : "Could not open schema"); }
+  }
+
   const importSql = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -455,6 +535,19 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     event.target.value = "";
   };
 
+  function importRuntimeSql(file: RuntimeFileResult) {
+    if (file.canceled) return;
+    if (file.error || !file.content) { setNotice(file.error ?? "Could not import SQL"); return; }
+    const result = importPostgresSql(file.content, file.fileName ? { sourceName: file.fileName } : undefined);
+    if (!result.schema || result.errors.length) {
+      setImportReport({ sourceName: file.fileName ?? "schema.sql", warnings: result.warnings, errors: result.errors.length ? result.errors : [{ code: "import_failed", message: "Titanbase could not create a schema from this SQL file." }] });
+      return;
+    }
+    const outputName = `${(file.fileName ?? "imported-schema.sql").replace(/\.(?:sql|psql)$/i, "") || "imported-schema"}.titan.json`;
+    replaceProject(result.schema, outputName, `Imported ${file.fileName ?? "SQL"}`, true, undefined, "postgres-sql");
+    if (result.warnings.length) setImportReport({ sourceName: file.fileName ?? "schema.sql", warnings: result.warnings, errors: [] });
+  }
+
   const compareJson = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -466,6 +559,15 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     }
     event.target.value = "";
   };
+
+  function compareRuntimeJson(file: RuntimeFileResult) {
+    if (file.canceled) return;
+    if (file.error || !file.content) { setDiffReport({ selectedName: file.fileName ?? "Selected schema", error: file.error ?? "Could not read the selected schema." }); return; }
+    try {
+      const selectedSchema = normalizeSchema(JSON.parse(file.content));
+      setDiffReport({ selectedName: file.fileName ?? "Selected schema", selectedSchema, result: diffSchemas(schemaRef.current, selectedSchema) });
+    } catch (error) { setDiffReport({ selectedName: file.fileName ?? "Selected schema", error: error instanceof Error ? error.message : "Could not read the selected schema." }); }
+  }
 
   const selectionForDiff = (change: SchemaDiffChange): EditorSelection => {
     if (change.columnId) {
@@ -519,7 +621,14 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     return true;
   };
 
-  const downloadContent = (target: ExportTarget, content: string) => {
+  const downloadContent = async (target: ExportTarget, content: string) => {
+    if (fileAdapter) {
+      const extensions: Record<ExportTarget, string[]> = { json: ["json"], sql: ["sql"], mermaid: ["mmd"], prisma: ["prisma"], drizzle: ["ts"] };
+      const result = await fileAdapter.exportFile({ defaultName: createExportFilename(schema.project.name, target), content, extensions: extensions[target] });
+      if (result.error) setNotice(result.error);
+      else if (!result.canceled) setNotice(`Exported ${result.fileName ?? "file"}`);
+      return;
+    }
     const mimeTypes: Record<ExportTarget, string> = {
       json: "application/json",
       sql: "text/sql",
@@ -538,7 +647,7 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     setNotice("Saved");
   };
 
-  const download = () => downloadContent(preview ?? "json", previewContent);
+  const download = () => { void downloadContent(preview ?? "json", previewContent); };
 
   const returnToWelcome = () => {
     const empty = normalizeSchema(createEmptySchema());
@@ -547,6 +656,8 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     setSavedSnapshot(JSON.stringify(empty));
     setRequiresJsonSave(false);
     setFilename("untitled.titan.json");
+    setCurrentFilePath(undefined);
+    setSourceKind("blank");
     setSelection(null);
     setMultiSelection(emptyMultiSelection);
     setPreview(null);
@@ -566,8 +677,7 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
 
   const saveAndLeave = () => {
     const content = JSON.stringify(schema, null, 2);
-    downloadContent("json", content);
-    returnToWelcome();
+    void downloadContent("json", content).then(returnToWelcome);
   };
 
   const clearLocalDraft = () => {
@@ -674,8 +784,64 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
 
   const statistics = useMemo(() => getSchemaStatistics(schema), [schema]);
 
+  const openRecentFile = (filePath: string) => {
+    if (!fileAdapter) return;
+    requestReplace(() => { void fileAdapter.openTitanJsonAt(filePath).then(openRuntimeJson); });
+  };
+
+  const clearRecentFiles = () => {
+    if (!fileAdapter) return;
+    void fileAdapter.clearRecentFiles().then(() => setRecentFiles([]));
+  };
+
+  useEffect(() => {
+    if (!fileAdapter) return;
+    const unsubscribeMenu = fileAdapter.onMenuAction((action) => {
+      if (typeof action === "object") {
+        if (action.type === "open-recent") openRecentFile(action.filePath);
+        return;
+      }
+      if (action === "new") startBlank();
+      else if (action === "open") requestOpenJson();
+      else if (action === "save") void saveCurrent();
+      else if (action === "save-as") void saveCurrent(true);
+      else if (action === "import-sql") requestImportSql();
+      else if (action === "export") setPreview("json");
+      else if (action === "compare") requestCompare();
+      else if (action === "settings") setSettingsOpen(true);
+      else if (action === "undo") history.undo();
+      else if (action === "redo") history.redo();
+      else if (action === "close-requested") requestReplace(fileAdapter.closeWindow);
+    });
+    const unsubscribeOpen = fileAdapter.onOpenFileFromOS((file) => requestReplace(() => /\.(?:sql|psql)$/i.test(file.fileName ?? "") ? importRuntimeSql(file) : openRuntimeJson(file)));
+    const prevent = (event: DragEvent) => event.preventDefault();
+    const drop = (event: DragEvent) => {
+      event.preventDefault();
+      const file = event.dataTransfer?.files[0];
+      if (!file) return;
+      if (!/\.(?:titan\.json|json|sql|psql)$/i.test(file.name)) {
+        setImportReport({ sourceName: file.name, warnings: [], errors: [{ code: "unsupported_file", message: "Titanbase can only open .titan.json, .json, and .sql files." }] });
+        return;
+      }
+      requestReplace(() => {
+        void fileAdapter.readDroppedFile(file).then((result) => {
+          if (/\.(?:sql|psql)$/i.test(result.fileName ?? file.name)) importRuntimeSql(result);
+          else openRuntimeJson(result);
+        });
+      });
+    };
+    window.addEventListener("dragover", prevent);
+    window.addEventListener("drop", drop);
+    return () => {
+      unsubscribeMenu();
+      unsubscribeOpen();
+      window.removeEventListener("dragover", prevent);
+      window.removeEventListener("drop", drop);
+    };
+  });
+
   if (showWelcome) return <>
-    <WelcomeScreen templates={templates} initialShowTemplates={welcomeTemplates} onBlank={startBlank} onOpen={requestOpenJson} onImportSql={requestImportSql} onTemplate={startTemplate} />
+    <WelcomeScreen templates={templates} initialShowTemplates={welcomeTemplates} onBlank={startBlank} onOpen={requestOpenJson} onImportSql={requestImportSql} onTemplate={startTemplate} recentFiles={recentFiles} onRecentFile={openRecentFile} onClearRecentFiles={clearRecentFiles} />
     <input ref={jsonFileInput} className="sr-only" type="file" accept=".json,.titan.json,application/json" onChange={importJson} />
     <input ref={sqlFileInput} className="sr-only" type="file" accept=".sql,.psql,text/sql,application/sql" onChange={importSql} />
     {importReport ? <ImportResultDialog {...importReport} onClose={() => setImportReport(null)} /> : null}
@@ -684,10 +850,10 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
   return <main className={`editor-shell ${darkMode ? "dark" : ""} ${inspectorPinnedOpen ? "editor-shell--inspector-pinned" : ""}`} data-theme={resolvedTheme}>
     <header className="editor-toolbar">
       <button className="brand-lockup" onClick={requestLogoNavigation} title="Return to start screen"><img className="theme-logo theme-logo--light" src="/Titan.svg" alt="Titanbase" /><img className="theme-logo theme-logo--dark" src="/titanbase_light.svg" alt="Titanbase" /></button>
-      <div className="file-status"><BracketsCurly size={17} /><span><strong>{schema.project.name}</strong><small>{filename}</small></span><span className={`status-dot ${isDirty ? "status-dot--dirty" : ""}`} /><em>{saveStatus}</em></div>
+      <div className="file-status" title={currentFilePath ?? `${filename} · ${sourceKindLabel(sourceKind)}`}><BracketsCurly size={17} /><span><strong>{schema.project.name}</strong><small>{filename} · {sourceKindLabel(sourceKind)}</small></span><span className={`status-dot ${isDirty ? "status-dot--dirty" : ""}`} /><em>{saveStatus}</em></div>
       <div className="toolbar-actions">
         <div className="toolbar-group"><Button variant="ghost" disabled={!history.canUndo} onClick={history.undo} title="Undo (Ctrl+Z)"><ArrowArcLeft size={18} /><span className="action-label">Undo</span></Button><Button variant="ghost" disabled={!history.canRedo} onClick={history.redo} title="Redo (Ctrl+Shift+Z)"><ArrowArcRight size={18} /><span className="action-label">Redo</span></Button></div>
-        <div className="toolbar-group"><Button variant="ghost" onClick={startBlank} title="New schema"><FilePlus size={18} /><span className="action-label">New</span></Button><Button variant="ghost" onClick={saveLocal} title="Save locally (Ctrl+S)"><FloppyDisk size={18} /><span className="action-label">Save</span></Button><Button variant="ghost" onClick={loadLocal} title="Load local draft"><FolderOpen size={18} /><span className="action-label">Load</span></Button><Button variant="ghost" onClick={requestImportSql} title="Import a local PostgreSQL SQL file"><FileSql size={18} /><span className="action-label">Import</span></Button><Button variant="ghost" onClick={requestCompare} title="Compare current schema with another .titan.json"><ArrowsLeftRight size={18} /><span className="action-label">Compare</span></Button><Button className="export-toolbar-button" onClick={() => setPreview("json")} title="Export and download schema files"><DownloadSimple size={18} /> Export</Button></div>
+        <div className="toolbar-group"><Button variant="ghost" onClick={startBlank} title="New schema"><FilePlus size={18} /><span className="action-label">New</span></Button><Button variant="ghost" onClick={() => { void saveCurrent(); }} title={fileAdapter ? "Save file (Ctrl+S)" : "Save locally (Ctrl+S)"}><FloppyDisk size={18} /><span className="action-label">Save</span></Button><Button variant="ghost" onClick={fileAdapter ? requestOpenJson : loadLocal} title={fileAdapter ? "Open .titan.json" : "Load local draft"}><FolderOpen size={18} /><span className="action-label">{fileAdapter ? "Open" : "Load"}</span></Button><Button variant="ghost" onClick={requestImportSql} title="Import a local PostgreSQL SQL file"><FileSql size={18} /><span className="action-label">Import</span></Button><Button variant="ghost" onClick={requestCompare} title="Compare current schema with another .titan.json"><ArrowsLeftRight size={18} /><span className="action-label">Compare</span></Button><Button className="export-toolbar-button" onClick={() => setPreview("json")} title="Export and download schema files"><DownloadSimple size={18} /> Export</Button></div>
         <div className="toolbar-group toolbar-group--add"><Button variant="primary" onClick={addTable}><Plus size={18} /> Table</Button><Button onClick={createRelation}><Link size={18} /> Relation</Button><Button onClick={createEnum}><Database size={18} /> Enum</Button></div>
         <div className="toolbar-group"><Button variant="ghost" onClick={() => { setSearchOpen(!searchOpen); if (!searchOpen) setTimeout(() => searchInput.current?.focus(), 50); }} title="Search (Ctrl+F)"><MagnifyingGlass size={18} /></Button><Button variant="ghost" onClick={runAutoLayout} title="Auto-layout tables"><TreeStructure size={18} /></Button><Button variant="ghost" onClick={() => setSettingsOpen(true)} title="Settings"><Gear size={18} /></Button><Button variant="ghost" onClick={toggleTheme} title="Toggle theme">{darkMode ? <Sun size={18} /> : <Moon size={18} />}</Button></div>
         <div className="toolbar-group"><a className="docs-link docs-link--icon" href="https://www.titanbase.run" target="_blank" rel="noreferrer" title="Titanbase" aria-label="Titanbase website"><img className="brand-mark-icon" src="/titanbase-mark.svg" alt="" /></a><a className="docs-link docs-link--icon" href="https://docs.titanbase.run" target="_blank" rel="noreferrer" title="Docs" aria-label="Documentation"><BookOpen size={18} /></a></div>
@@ -738,7 +904,7 @@ function SchemaEditorInner({ initialSchema, templates = [], settings = fallbackE
     {replaceOpen ? <ReplaceDialog onReplace={() => { const action = replaceAction.current; replaceAction.current = null; setReplaceOpen(false); action?.(); }} onCancel={() => { replaceAction.current = null; setReplaceOpen(false); }} /> : null}
     {importReport ? <ImportResultDialog {...importReport} onClose={() => setImportReport(null)} /> : null}
     {diffReport ? diffReport.result ? <DiffModal currentName={filename} selectedName={diffReport.selectedName} result={diffReport.result} onClose={() => setDiffReport(null)} canSelect={(change) => Boolean(selectionForDiff(change))} onSelect={selectDiffChange} onGenerateDraft={generateMigrationDraft} /> : <DiffModal currentName={filename} selectedName={diffReport.selectedName} error={diffReport.error ?? "Could not compare schemas."} onClose={() => setDiffReport(null)} canSelect={() => false} onSelect={() => undefined} /> : null}
-    {migrationDraft ? <MigrationDraftModal currentName={filename} selectedName={migrationDraft.selectedName} result={migrationDraft.result} onClose={() => setMigrationDraft(null)} /> : null}
+    {migrationDraft ? <MigrationDraftModal currentName={filename} selectedName={migrationDraft.selectedName} result={migrationDraft.result} onClose={() => setMigrationDraft(null)} {...(fileAdapter ? { onDownload: (result: MigrationDraftResult) => { void fileAdapter.exportFile({ defaultName: result.filename, content: result.sql, extensions: ["sql"] }).then((saved) => { if (saved.error) setNotice(saved.error); else if (!saved.canceled) setNotice(`Exported ${saved.fileName ?? "migration draft"}`); }); } } : {})} /> : null}
   </main>;
 }
 
